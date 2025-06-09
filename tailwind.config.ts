@@ -1,3 +1,4 @@
+
 import type { Config } from "tailwindcss";
 
 export default {
@@ -18,6 +19,10 @@ export default {
 			}
 		},
 		extend: {
+			fontFamily: {
+				'orbitron': ['Orbitron', 'monospace'],
+				'space': ['Space Grotesk', 'sans-serif'],
+			},
 			colors: {
 				border: 'hsl(var(--border))',
 				input: 'hsl(var(--input))',
@@ -61,6 +66,17 @@ export default {
 					'accent-foreground': 'hsl(var(--sidebar-accent-foreground))',
 					border: 'hsl(var(--sidebar-border))',
 					ring: 'hsl(var(--sidebar-ring))'
+				},
+				// Cosmic theme colors
+				cosmic: {
+					black: '#0a0a0f',
+					'black-light': '#1a1a2e',
+					blue: '#0066cc',
+					'blue-dark': '#004080',
+					green: '#00ff88',
+					'green-dark': '#00cc6a',
+					silver: '#c0c5ce',
+					purple: '#6c5ce7',
 				}
 			},
 			borderRadius: {
@@ -84,11 +100,41 @@ export default {
 					to: {
 						height: '0'
 					}
+				},
+				'scan-beam': {
+					'0%': { transform: 'rotate(0deg)' },
+					'100%': { transform: 'rotate(360deg)' }
+				},
+				'satellite-orbit': {
+					'0%': { transform: 'rotate(0deg) translateX(150px) rotate(0deg)' },
+					'100%': { transform: 'rotate(360deg) translateX(150px) rotate(-360deg)' }
+				},
+				'pulse-glow': {
+					'0%, 100%': { boxShadow: '0 0 5px #00ff88, 0 0 10px #00ff88' },
+					'50%': { boxShadow: '0 0 20px #00ff88, 0 0 30px #00ff88' }
+				},
+				'wave-animation': {
+					'0%': { transform: 'translateX(-100%)' },
+					'100%': { transform: 'translateX(100%)' }
+				},
+				'data-stream': {
+					'0%': { opacity: '0', transform: 'translateY(20px)' },
+					'50%': { opacity: '1', transform: 'translateY(0)' },
+					'100%': { opacity: '0', transform: 'translateY(-20px)' }
 				}
 			},
 			animation: {
 				'accordion-down': 'accordion-down 0.2s ease-out',
-				'accordion-up': 'accordion-up 0.2s ease-out'
+				'accordion-up': 'accordion-up 0.2s ease-out',
+				'scan-beam': 'scan-beam 8s linear infinite',
+				'satellite-orbit': 'satellite-orbit 20s linear infinite',
+				'pulse-glow': 'pulse-glow 2s ease-in-out infinite',
+				'wave-animation': 'wave-animation 3s ease-in-out infinite',
+				'data-stream': 'data-stream 2s ease-in-out infinite'
+			},
+			backgroundImage: {
+				'cosmic-gradient': 'linear-gradient(135deg, #0a0a0f 0%, #1a1a2e 50%, #0066cc 100%)',
+				'space-grid': 'radial-gradient(circle at 1px 1px, #00ff88 1px, transparent 0)',
 			}
 		}
 	},
