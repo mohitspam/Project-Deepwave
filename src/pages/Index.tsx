@@ -1,6 +1,7 @@
 
 import Navigation from "@/components/Navigation";
 import HeroSection from "@/components/HeroSection";
+import InteractiveGlobe from "@/components/InteractiveGlobe";
 import PredictionForm from "@/components/PredictionForm";
 import AIPerformanceDashboard from "@/components/AIPerformanceDashboard";
 import HistoricalEarthquakes from "@/components/HistoricalEarthquakes";
@@ -13,7 +14,10 @@ const Index = () => {
       <div className="space-grid min-h-screen">
         <Navigation />
         <HeroSection />
-        <PredictionForm />
+        <InteractiveGlobe />
+        <div data-section="prediction">
+          <PredictionForm />
+        </div>
         <AIPerformanceDashboard />
         <HistoricalEarthquakes />
         <LiveDataPanel />

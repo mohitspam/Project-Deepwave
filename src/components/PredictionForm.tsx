@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -24,6 +24,22 @@ const PredictionForm = () => {
   
   const [prediction, setPrediction] = useState<PredictionResult | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+
+  // Listen for coordinate updates from URL params or other sources
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const lat = urlParams.get('lat');
+    const lng = urlParams.get('lng');
+    
+    if (lat && lng) {
+      setFormData(prev => ({
+        ...prev,
+        latitude: parseFloat(lat).toFixed(4),
+        longitude: parseFloat(lng).toFixed(4)
+      }));
+      toast.info('Coordinates loaded from globe selection');
+    }
+  }, []);
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -56,7 +72,7 @@ const PredictionForm = () => {
       riskLevel,
       probability: Math.round(probability),
       waveHeight: Math.round(waveHeight * 10) / 10,
-      arrivalTime: Math.round(15 + Math.random() * 120) // 15-135 minutes
+      arrivalTime: Math.round(15 + Math.random() * 120)
     };
   };
 
@@ -71,7 +87,6 @@ const PredictionForm = () => {
     setIsLoading(true);
     
     try {
-      // Simulate API call delay
       await new Promise(resolve => setTimeout(resolve, 2000));
       const result = await simulatePrediction();
       setPrediction(result);
@@ -235,7 +250,6 @@ const PredictionForm = () => {
                   <div className="text-sm text-cosmic-silver">Estimated Arrival Time</div>
                 </div>
 
-                {/* Wave level indicator */}
                 <div className="relative h-24 bg-cosmic-black rounded-lg overflow-hidden">
                   <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-cosmic-blue to-cosmic-blue/30 animate-wave-animation"
                        style={{ height: `${Math.min(prediction.waveHeight * 10, 100)}%` }}>
