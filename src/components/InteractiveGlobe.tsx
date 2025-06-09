@@ -1,7 +1,7 @@
 
 import { useRef, useState, useCallback } from 'react';
 import { Canvas, useFrame, ThreeEvent } from '@react-three/fiber';
-import { Sphere, OrbitControls, Stars } from '@react-three/drei';
+import { OrbitControls, Stars } from '@react-three/drei';
 import * as THREE from 'three';
 import { toast } from 'sonner';
 
@@ -15,7 +15,7 @@ const EarthSphere = ({ onCoordinateClick }: GlobeProps) => {
   // Auto-rotate the globe
   useFrame((state, delta) => {
     if (meshRef.current) {
-      meshRef.current.rotation.y += delta * 0.1; // Slow rotation
+      meshRef.current.rotation.y += delta * 0.1;
     }
   });
 
@@ -24,16 +24,12 @@ const EarthSphere = ({ onCoordinateClick }: GlobeProps) => {
     
     if (!meshRef.current) return;
     
-    // Get the intersection point
     const point = event.point;
-    
-    // Convert 3D point to latitude and longitude
-    const radius = 2; // Globe radius
+    const radius = 2;
     const x = point.x;
     const y = point.y;
     const z = point.z;
     
-    // Calculate latitude and longitude from 3D coordinates
     const lat = Math.asin(y / radius) * (180 / Math.PI);
     const lng = Math.atan2(x, z) * (180 / Math.PI);
     
@@ -42,18 +38,18 @@ const EarthSphere = ({ onCoordinateClick }: GlobeProps) => {
   }, [onCoordinateClick]);
 
   return (
-    <Sphere 
+    <mesh 
       ref={meshRef} 
-      args={[2, 64, 64]} 
       onClick={handleClick}
       position={[0, 0, 0]}
     >
+      <sphereGeometry args={[2, 64, 64]} />
       <meshPhongMaterial
         color="#4a90e2"
         transparent={true}
         opacity={0.9}
       />
-    </Sphere>
+    </mesh>
   );
 };
 
@@ -62,7 +58,6 @@ const InteractiveGlobe = () => {
 
   const handleCoordinateClick = useCallback((lat: number, lng: number) => {
     setSelectedCoords({ lat, lng });
-    // Here you could trigger navigation to prediction form with coordinates
     console.log('Selected coordinates:', { lat, lng });
   }, []);
 
@@ -79,10 +74,8 @@ const InteractiveGlobe = () => {
         </div>
 
         <div className="relative">
-          {/* Globe Container */}
           <div className="h-[600px] w-full rounded-lg overflow-hidden bg-cosmic-black border border-cosmic-blue/30">
             <Canvas camera={{ position: [0, 0, 8], fov: 45 }}>
-              {/* Lighting */}
               <ambientLight intensity={0.3} />
               <directionalLight 
                 position={[5, 5, 5]} 
@@ -91,7 +84,6 @@ const InteractiveGlobe = () => {
               />
               <pointLight position={[-5, -5, -5]} intensity={0.5} />
               
-              {/* Stars background */}
               <Stars 
                 radius={100} 
                 depth={50} 
@@ -102,10 +94,8 @@ const InteractiveGlobe = () => {
                 speed={1}
               />
               
-              {/* Earth Globe */}
               <EarthSphere onCoordinateClick={handleCoordinateClick} />
               
-              {/* Controls */}
               <OrbitControls 
                 enablePan={false}
                 enableZoom={true}
@@ -117,7 +107,6 @@ const InteractiveGlobe = () => {
             </Canvas>
           </div>
 
-          {/* Coordinate Display */}
           {selectedCoords && (
             <div className="absolute top-4 right-4 space-card p-4">
               <h3 className="font-orbitron text-cosmic-green text-lg mb-2">
@@ -130,7 +119,6 @@ const InteractiveGlobe = () => {
               <button 
                 className="cosmic-button mt-3 text-sm py-2 px-4"
                 onClick={() => {
-                  // Scroll to prediction form or navigate there
                   const predictionForm = document.querySelector('[data-section="prediction"]');
                   if (predictionForm) {
                     predictionForm.scrollIntoView({ behavior: 'smooth' });
@@ -143,7 +131,6 @@ const InteractiveGlobe = () => {
             </div>
           )}
 
-          {/* Info Panel */}
           <div className="absolute bottom-4 left-4 space-card p-4 max-w-sm">
             <div className="text-cosmic-green font-orbitron text-sm mb-2">
               Interactive Controls
@@ -157,7 +144,6 @@ const InteractiveGlobe = () => {
           </div>
         </div>
 
-        {/* Live Data Indicators */}
         <div className="mt-8 grid md:grid-cols-3 gap-6">
           <div className="space-card text-center">
             <div className="text-cosmic-green text-2xl font-orbitron mb-2">24/7</div>
