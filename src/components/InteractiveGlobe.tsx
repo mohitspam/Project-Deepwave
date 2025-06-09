@@ -52,43 +52,7 @@ const EarthSphere = ({ onCoordinateClick }: GlobeProps) => {
         color="#4a90e2"
         transparent={true}
         opacity={0.9}
-      >
-        {/* Earth-like texture using gradients and patterns */}
-        <primitive 
-          object={new THREE.DataTexture(
-            new Uint8Array([
-              // Creating a simple earth-like pattern
-              ...Array(256 * 256 * 4).fill(0).map((_, i) => {
-                const pixel = Math.floor(i / 4);
-                const x = pixel % 256;
-                const y = Math.floor(pixel / 256);
-                const channel = i % 4;
-                
-                // Create continent-like patterns
-                const noise1 = Math.sin(x * 0.02) * Math.cos(y * 0.03);
-                const noise2 = Math.sin(x * 0.01 + y * 0.01) * 0.5;
-                const combined = noise1 + noise2;
-                
-                if (channel === 3) return 255; // Alpha
-                
-                // Land vs ocean
-                if (combined > 0.1) {
-                  // Land colors (green/brown)
-                  return channel === 0 ? 34 : channel === 1 ? 139 : 34; // Forest green
-                } else if (combined > -0.2) {
-                  // Coastal areas (lighter green/yellow)
-                  return channel === 0 ? 154 : channel === 1 ? 205 : 50;
-                } else {
-                  // Ocean colors (blue)
-                  return channel === 0 ? 25 : channel === 1 ? 25 : 112;
-                }
-              })
-            ]),
-            256,
-            256
-          )}
-        />
-      </meshPhongMaterial>
+      />
     </Sphere>
   );
 };
