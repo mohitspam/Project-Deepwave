@@ -57,8 +57,8 @@ const EarthSphere = ({ onCoordinateClick, onTexturesLoaded }: GlobeProps) => {
         bumpMap={bumpTexture}
         bumpScale={0.05}
         specularMap={specularTexture}
-        specular={new THREE.Color(0x4466aa)}
-        shininess={100}
+        specular={new THREE.Color(0x88aaff)} // brighter highlights
+        shininess={150} // more reflective
       />
     </mesh>
   );
@@ -121,16 +121,42 @@ const InteractiveGlobe = () => {
         <div className="relative">
           <div className="h-[700px] w-full rounded-xl overflow-hidden bg-black border border-blue-500/20 shadow-2xl">
             <Canvas camera={{ position: [0, 0, 6], fov: 50 }}>
-              <ambientLight intensity={0.15} />
-              <directionalLight position={[5, 3, 5]} intensity={2.0} castShadow color="#ffffff" />
-              <pointLight position={[-3, -3, -3]} intensity={0.2} color="#1e3a8a" />
-              <Stars radius={200} depth={60} count={10000} factor={4} saturation={0} fade speed={0.3} />
+              <ambientLight intensity={0.4} />
+
+              {/* Primary sunlight */}
+              <directionalLight
+                position={[5, 3, 5]}
+                intensity={3.0}
+                castShadow
+                color="#ffffff"
+              />
+
+              {/* Rim light for extra glow */}
+              <directionalLight
+                position={[-4, 2, -2]}
+                intensity={1.5}
+                color="#ddddff"
+              />
+
+              <pointLight position={[-3, -3, -3]} intensity={0.5} color="#88ccff" />
+
+              <Stars
+                radius={200}
+                depth={60}
+                count={10000}
+                factor={4}
+                saturation={0}
+                fade
+                speed={0.3}
+              />
+
               <Suspense fallback={<LoadingEarth />}>
                 <EarthSphere
                   onCoordinateClick={handleCoordinateClick}
                   onTexturesLoaded={() => setIsLoading(false)}
                 />
               </Suspense>
+
               <OrbitControls
                 enablePan={false}
                 enableZoom={true}
@@ -213,24 +239,6 @@ const InteractiveGlobe = () => {
           <div className="absolute bottom-6 right-6 bg-black/80 backdrop-blur-sm border border-gray-600/30 rounded-lg p-3 text-xs text-gray-400">
             <div>📡 Imagery: NASA Blue Marble</div>
             <div>🛰️ Real satellite data</div>
-          </div>
-        </div>
-
-        <div className="mt-12 grid md:grid-cols-3 gap-6">
-          <div className="bg-gradient-to-br from-blue-600/20 to-purple-600/20 backdrop-blur-sm border border-blue-400/20 rounded-lg p-6 text-center transform hover:scale-105 transition-all duration-200">
-            <div className="text-4xl mb-3">🛰️</div>
-            <div className="text-blue-400 text-2xl font-bold mb-2">NASA Quality</div>
-            <div className="text-gray-300">Real satellite imagery</div>
-          </div>
-          <div className="bg-gradient-to-br from-green-600/20 to-blue-600/20 backdrop-blur-sm border border-green-400/20 rounded-lg p-6 text-center transform hover:scale-105 transition-all duration-200">
-            <div className="text-4xl mb-3">🌍</div>
-            <div className="text-green-400 text-2xl font-bold mb-2">Interactive</div>
-            <div className="text-gray-300">Click anywhere on Earth</div>
-          </div>
-          <div className="bg-gradient-to-br from-purple-600/20 to-pink-600/20 backdrop-blur-sm border border-purple-400/20 rounded-lg p-6 text-center transform hover:scale-105 transition-all duration-200">
-            <div className="text-4xl mb-3">📍</div>
-            <div className="text-purple-400 text-2xl font-bold mb-2">Precise</div>
-            <div className="text-gray-300">WGS84 coordinates</div>
           </div>
         </div>
       </div>
