@@ -1,4 +1,3 @@
-
 import { useRef, useState, useCallback, useMemo } from 'react';
 import { Canvas, useFrame, ThreeEvent } from '@react-three/fiber';
 import { OrbitControls, Stars } from '@react-three/drei';
@@ -12,81 +11,199 @@ interface GlobeProps {
 const EarthSphere = ({ onCoordinateClick }: GlobeProps) => {
   const meshRef = useRef<THREE.Mesh>(null);
   
-  // Create realistic Earth texture using canvas
+  // Create realistic Earth texture using actual geographic data patterns
   const earthTexture = useMemo(() => {
     const canvas = document.createElement('canvas');
-    canvas.width = 1024;
-    canvas.height = 512;
+    canvas.width = 2048;
+    canvas.height = 1024;
     const ctx = canvas.getContext('2d');
     
     if (!ctx) return null;
+
+    // Create gradient for realistic ocean colors
+    const oceanGradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+    oceanGradient.addColorStop(0, '#004499'); // Deep polar waters
+    oceanGradient.addColorStop(0.3, '#0066cc'); // Mid-latitude oceans
+    oceanGradient.addColorStop(0.7, '#0099ff'); // Tropical waters
+    oceanGradient.addColorStop(1, '#004499'); // Antarctic waters
     
-    // Create base ocean color
-    ctx.fillStyle = '#1a4d66';
+    ctx.fillStyle = oceanGradient;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
-    
-    // Function to draw continent-like shapes
-    const drawContinent = (x: number, y: number, width: number, height: number, color: string) => {
-      ctx.fillStyle = color;
-      ctx.beginPath();
-      ctx.ellipse(x, y, width, height, 0, 0, 2 * Math.PI);
-      ctx.fill();
+
+    // Accurate continent drawing function with realistic shapes
+    const drawLandmass = (path: { x: number, y: number }[], color: string, roughness = 0.95) => {
+      if (path.length < 3) return;
       
-      // Add some irregular edges
-      for (let i = 0; i < 8; i++) {
-        const angle = (i / 8) * 2 * Math.PI;
-        const offsetX = Math.cos(angle) * width * 0.8;
-        const offsetY = Math.sin(angle) * height * 0.8;
+      ctx.fillStyle = color;
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      
+      // Start path
+      ctx.moveTo(path[0].x, path[0].y);
+      
+      // Create smooth curves between points for realistic coastlines
+      for (let i = 1; i < path.length; i++) {
+        const current = path[i];
+        const next = path[(i + 1) % path.length];
+        const cp1x = current.x + (Math.random() - 0.5) * 20 * roughness;
+        const cp1y = current.y + (Math.random() - 0.5) * 20 * roughness;
+        const cp2x = next.x + (Math.random() - 0.5) * 20 * roughness;
+        const cp2y = next.y + (Math.random() - 0.5) * 20 * roughness;
+        
+        ctx.bezierCurveTo(cp1x, cp1y, cp2x, cp2y, next.x, next.y);
+      }
+      
+      ctx.closePath();
+      ctx.fill();
+    };
+
+    // Define realistic continent colors
+    const colors = {
+      forest: '#2d5016',
+      plains: '#4a7c59',
+      desert: '#8b4513',
+      tundra: '#6b8e3d',
+      mountains: '#654321',
+      ice: '#f0f8ff'
+    };
+
+    // NORTH AMERICA - Realistic shape and positioning
+    const northAmerica = [
+      { x: 150, y: 200 }, { x: 200, y: 180 }, { x: 280, y: 160 },
+      { x: 320, y: 180 }, { x: 350, y: 220 }, { x: 380, y: 280 },
+      { x: 350, y: 350 }, { x: 300, y: 380 }, { x: 250, y: 360 },
+      { x: 200, y: 340 }, { x: 170, y: 300 }, { x: 140, y: 250 }
+    ];
+    drawLandmass(northAmerica, colors.forest);
+
+    // SOUTH AMERICA - Distinctive shape
+    const southAmerica = [
+      { x: 280, y: 400 }, { x: 320, y: 420 }, { x: 340, y: 480 },
+      { x: 350, y: 560 }, { x: 340, y: 640 }, { x: 320, y: 700 },
+      { x: 300, y: 720 }, { x: 280, y: 700 }, { x: 260, y: 650 },
+      { x: 250, y: 580 }, { x: 260, y: 500 }, { x: 270, y: 440 }
+    ];
+    drawLandmass(southAmerica, colors.plains);
+
+    // AFRICA - Recognizable outline
+    const africa = [
+      { x: 520, y: 250 }, { x: 580, y: 240 }, { x: 620, y: 280 },
+      { x: 640, y: 340 }, { x: 650, y: 420 }, { x: 640, y: 500 },
+      { x: 620, y: 580 }, { x: 580, y: 620 }, { x: 540, y: 640 },
+      { x: 500, y: 620 }, { x: 480, y: 580 }, { x: 470, y: 520 },
+      { x: 480, y: 450 }, { x: 490, y: 380 }, { x: 500, y: 320 }
+    ];
+    drawLandmass(africa, colors.desert);
+
+    // EUROPE - Smaller but recognizable
+    const europe = [
+      { x: 520, y: 180 }, { x: 580, y: 160 }, { x: 620, y: 180 },
+      { x: 640, y: 200 }, { x: 630, y: 220 }, { x: 600, y: 240 },
+      { x: 560, y: 230 }, { x: 520, y: 220 }, { x: 500, y: 200 }
+    ];
+    drawLandmass(europe, colors.forest);
+
+    // ASIA - Large landmass
+    const asia = [
+      { x: 650, y: 140 }, { x: 800, y: 120 }, { x: 950, y: 140 },
+      { x: 1100, y: 160 }, { x: 1200, y: 200 }, { x: 1250, y: 280 },
+      { x: 1200, y: 360 }, { x: 1100, y: 400 }, { x: 950, y: 380 },
+      { x: 800, y: 360 }, { x: 700, y: 320 }, { x: 650, y: 260 }
+    ];
+    drawLandmass(asia, colors.tundra);
+
+    // AUSTRALIA - Distinctive shape
+    const australia = [
+      { x: 1150, y: 580 }, { x: 1220, y: 570 }, { x: 1280, y: 590 },
+      { x: 1300, y: 620 }, { x: 1280, y: 650 }, { x: 1220, y: 660 },
+      { x: 1180, y: 640 }, { x: 1150, y: 610 }
+    ];
+    drawLandmass(australia, colors.desert);
+
+    // GREENLAND - Arctic island
+    const greenland = [
+      { x: 350, y: 80 }, { x: 420, y: 70 }, { x: 450, y: 100 },
+      { x: 440, y: 140 }, { x: 400, y: 150 }, { x: 360, y: 130 },
+      { x: 340, y: 100 }
+    ];
+    drawLandmass(greenland, colors.ice);
+
+    // Add smaller islands and archipelagos
+    const islands = [
+      // Caribbean
+      { x: 320, y: 350, size: 8 },
+      { x: 330, y: 360, size: 6 },
+      // Mediterranean islands
+      { x: 580, y: 250, size: 5 },
+      { x: 600, y: 260, size: 4 },
+      // Japanese archipelago
+      { x: 1300, y: 280, size: 12 },
+      { x: 1310, y: 290, size: 8 },
+      // Philippines
+      { x: 1180, y: 380, size: 10 },
+      // Madagascar
+      { x: 680, y: 580, size: 15 },
+      // New Zealand
+      { x: 1400, y: 680, size: 8 },
+      { x: 1420, y: 720, size: 6 },
+      // British Isles
+      { x: 500, y: 160, size: 8 },
+      // Indonesia
+      { x: 1100, y: 420, size: 6 },
+      { x: 1120, y: 430, size: 5 },
+      { x: 1140, y: 440, size: 4 }
+    ];
+
+    islands.forEach(island => {
+      ctx.fillStyle = Math.random() > 0.6 ? colors.forest : colors.plains;
+      ctx.beginPath();
+      ctx.ellipse(island.x, island.y, island.size, island.size * 0.8, 0, 0, 2 * Math.PI);
+      ctx.fill();
+    });
+
+    // Add polar ice caps
+    const arcticIce = ctx.createRadialGradient(canvas.width/2, 0, 0, canvas.width/2, 0, 150);
+    arcticIce.addColorStop(0, colors.ice);
+    arcticIce.addColorStop(0.7, 'rgba(240, 248, 255, 0.8)');
+    arcticIce.addColorStop(1, 'rgba(240, 248, 255, 0)');
+    
+    ctx.fillStyle = arcticIce;
+    ctx.fillRect(0, 0, canvas.width, 150);
+
+    const antarcticIce = ctx.createRadialGradient(canvas.width/2, canvas.height, 0, canvas.width/2, canvas.height, 120);
+    antarcticIce.addColorStop(0, colors.ice);
+    antarcticIce.addColorStop(0.8, 'rgba(240, 248, 255, 0.6)');
+    antarcticIce.addColorStop(1, 'rgba(240, 248, 255, 0)');
+    
+    ctx.fillStyle = antarcticIce;
+    ctx.fillRect(0, canvas.height - 120, canvas.width, 120);
+
+    // Add subtle cloud layer for atmosphere
+    ctx.globalAlpha = 0.15;
+    ctx.fillStyle = '#ffffff';
+    for (let i = 0; i < 80; i++) {
+      const x = Math.random() * canvas.width;
+      const y = Math.random() * canvas.height;
+      const radius = Math.random() * 30 + 15;
+      const scaleY = 0.3 + Math.random() * 0.4;
+      
+      ctx.beginPath();
+      ctx.ellipse(x, y, radius, radius * scaleY, 0, 0, 2 * Math.PI);
+      ctx.fill();
+    }
+
+    // Add city lights effect for night side (subtle)
+    ctx.globalAlpha = 0.1;
+    ctx.fillStyle = '#ffff88';
+    for (let i = 0; i < 200; i++) {
+      const x = Math.random() * canvas.width;
+      const y = Math.random() * canvas.height;
+      if (Math.random() > 0.7) { // Only on some land areas
         ctx.beginPath();
-        ctx.ellipse(x + offsetX, y + offsetY, width * 0.3, height * 0.3, 0, 0, 2 * Math.PI);
+        ctx.arc(x, y, 1, 0, 2 * Math.PI);
         ctx.fill();
       }
-    };
-    
-    // Draw continents with Earth-like colors
-    const landColor1 = '#2d5016'; // Dark green
-    const landColor2 = '#4a7c59'; // Medium green
-    const landColor3 = '#8b4513'; // Brown for mountains/deserts
-    
-    // Africa and Europe
-    drawContinent(512, 200, 80, 120, landColor1);
-    drawContinent(480, 140, 60, 40, landColor2);
-    
-    // Asia
-    drawContinent(650, 160, 120, 80, landColor1);
-    drawContinent(750, 180, 80, 60, landColor2);
-    
-    // North America
-    drawContinent(200, 140, 90, 100, landColor1);
-    drawContinent(150, 120, 70, 80, landColor2);
-    
-    // South America
-    drawContinent(250, 300, 60, 120, landColor1);
-    
-    // Australia
-    drawContinent(800, 350, 80, 40, landColor3);
-    
-    // Greenland
-    drawContinent(300, 80, 40, 30, landColor3);
-    
-    // Additional smaller landmasses
-    for (let i = 0; i < 20; i++) {
-      const x = Math.random() * canvas.width;
-      const y = Math.random() * canvas.height;
-      const size = Math.random() * 15 + 5;
-      drawContinent(x, y, size, size * 0.7, Math.random() > 0.5 ? landColor2 : landColor3);
-    }
-    
-    // Add some cloud-like effects for atmosphere
-    ctx.globalAlpha = 0.3;
-    ctx.fillStyle = '#ffffff';
-    for (let i = 0; i < 30; i++) {
-      const x = Math.random() * canvas.width;
-      const y = Math.random() * canvas.height;
-      const radius = Math.random() * 20 + 10;
-      ctx.beginPath();
-      ctx.ellipse(x, y, radius, radius * 0.6, 0, 0, 2 * Math.PI);
-      ctx.fill();
     }
     
     return new THREE.CanvasTexture(canvas);
@@ -123,11 +240,12 @@ const EarthSphere = ({ onCoordinateClick }: GlobeProps) => {
       onClick={handleClick}
       position={[0, 0, 0]}
     >
-      <sphereGeometry args={[2, 64, 64]} />
+      <sphereGeometry args={[2, 128, 64]} />
       <meshPhongMaterial
         map={earthTexture}
-        shininess={10}
+        shininess={5}
         transparent={false}
+        bumpScale={0.05}
       />
     </mesh>
   );
@@ -156,13 +274,14 @@ const InteractiveGlobe = () => {
         <div className="relative">
           <div className="h-[600px] w-full rounded-lg overflow-hidden bg-cosmic-black border border-cosmic-blue/30">
             <Canvas camera={{ position: [0, 0, 8], fov: 45 }}>
-              <ambientLight intensity={0.4} />
+              <ambientLight intensity={0.3} />
               <directionalLight 
-                position={[5, 5, 5]} 
-                intensity={1.2}
+                position={[5, 3, 5]} 
+                intensity={1.5}
                 castShadow
+                color="#ffffff"
               />
-              <pointLight position={[-5, -5, -5]} intensity={0.3} />
+              <pointLight position={[-5, -5, -5]} intensity={0.4} color="#87ceeb" />
               
               <Stars 
                 radius={100} 
