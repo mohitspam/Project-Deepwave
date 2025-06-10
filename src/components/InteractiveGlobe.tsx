@@ -1,4 +1,3 @@
-// Add this at the top
 import { useRef, useState, useCallback, useEffect, Suspense } from 'react';
 import { Canvas, useFrame, useLoader } from '@react-three/fiber';
 import { OrbitControls, Stars } from '@react-three/drei';
@@ -7,10 +6,10 @@ import * as THREE from 'three';
 interface GlobeProps {
   onCoordinateClick: (lat: number, lng: number) => void;
   onTexturesLoaded: () => void;
-  onGlobeClickEffect: (pos: THREE.Vector3) => void;
+  onPinDrop: (pos: THREE.Vector3) => void;
 }
 
-const EarthSphere = ({ onCoordinateClick, onTexturesLoaded, onGlobeClickEffect }: GlobeProps) => {
+const EarthSphere = ({ onCoordinateClick, onTexturesLoaded, onPinDrop }: GlobeProps) => {
   const meshRef = useRef<THREE.Mesh>(null);
 
   const earthTexture = useLoader(
@@ -43,15 +42,14 @@ const EarthSphere = ({ onCoordinateClick, onTexturesLoaded, onGlobeClickEffect }
       event.stopPropagation();
       if (!meshRef.current) return;
 
-      const point = event.point.clone().normalize().multiplyScalar(2); // normalize to sphere surface
-      const radius = 2;
-      const lat = Math.asin(point.y / radius) * (180 / Math.PI);
+      const point = event.point.clone().normalize().multiplyScalar(2);
+      const lat = Math.asin(point.y / 2) * (180 / Math.PI);
       const lng = Math.atan2(point.x, point.z) * (180 / Math.PI);
 
       onCoordinateClick(lat, lng);
-      onGlobeClickEffect(point);
+      onPinDrop(point);
     },
-    [onCoordinateClick, onGlobeClickEffect]
+    [onCoordinateClick, onPinDrop]
   );
 
   return (
@@ -69,25 +67,20 @@ const EarthSphere = ({ onCoordinateClick, onTexturesLoaded, onGlobeClickEffect }
   );
 };
 
-const ClickEffect = ({ position }: { position: THREE.Vector3 }) => {
-  const meshRef = useRef<THREE.Mesh>(null);
-  const ageRef = useRef(0);
-
-  useFrame((_, delta) => {
-    if (meshRef.current) {
-      ageRef.current += delta;
-      const scale = 1 + ageRef.current * 2;
-      const opacity = Math.max(0, 1 - ageRef.current / 1.5); // fade out in 1.5s
-      meshRef.current.scale.set(scale, scale, scale);
-      (meshRef.current.material as THREE.MeshBasicMaterial).opacity = opacity;
-    }
-  });
-
+const RedPin = ({ position }: { position: THREE.Vector3 }) => {
   return (
-    <mesh position={position} ref={meshRef}>
-      <sphereGeometry args={[0.05, 32, 32]} />
-      <meshBasicMaterial color="#00ffff" transparent opacity={1.0} />
-    </mesh>
+    <group position={position}>
+      {/* Cylinder stem */}
+      <mesh rotation={[Math.PI / 2, 0, 0]} position={[0, -0.1, 0]}>
+        <cylinderGeometry args={[0.01, 0.01, 0.2, 12]} />
+        <meshStandardMaterial color="red" />
+      </mesh>
+      {/* Sphere head */}
+      <mesh position={[0, 0.05, 0]}>
+        <sphereGeometry args={[0.03, 16, 16]} />
+        <meshStandardMaterial color="red" />
+      </mesh>
+    </group>
   );
 };
 
@@ -110,7 +103,7 @@ const LoadingEarth = () => {
 const InteractiveGlobe = () => {
   const [selectedCoords, setSelectedCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [clickEffects, setClickEffects] = useState<{ id: number; position: THREE.Vector3 }[]>([]);
+  const [pin, setPin] = useState<THREE.Vector3 | null>(null);
 
   const handleCoordinateClick = useCallback((lat: number, lng: number) => {
     setSelectedCoords({ lat, lng });
@@ -134,13 +127,9 @@ const InteractiveGlobe = () => {
     setTimeout(() => notification.remove(), 3000);
   }, []);
 
-  const handleGlobeClickEffect = useCallback((pos: THREE.Vector3) => {
-    const id = Date.now();
-    setClickEffects((prev) => [...prev, { id, position: pos }]);
-
-    setTimeout(() => {
-      setClickEffects((prev) => prev.filter((fx) => fx.id !== id));
-    }, 1500);
+  const handlePinDrop = useCallback((pos: THREE.Vector3) => {
+    setPin(pos);
+    setTimeout(() => setPin(null), 3000);
   }, []);
 
   return (
@@ -167,13 +156,11 @@ const InteractiveGlobe = () => {
                 <EarthSphere
                   onCoordinateClick={handleCoordinateClick}
                   onTexturesLoaded={() => setIsLoading(false)}
-                  onGlobeClickEffect={handleGlobeClickEffect}
+                  onPinDrop={handlePinDrop}
                 />
               </Suspense>
 
-              {clickEffects.map((effect) => (
-                <ClickEffect key={effect.id} position={effect.position} />
-              ))}
+              {pin && <RedPin position={pin} />}
 
               <OrbitControls
                 enablePan={false}
