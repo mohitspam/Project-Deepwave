@@ -1,5 +1,5 @@
 
-import { useRef, useState, useCallback } from 'react';
+import { useRef, useState, useCallback, useMemo } from 'react';
 import { Canvas, useFrame, ThreeEvent } from '@react-three/fiber';
 import { OrbitControls, Stars } from '@react-three/drei';
 import * as THREE from 'three';
@@ -12,6 +12,86 @@ interface GlobeProps {
 const EarthSphere = ({ onCoordinateClick }: GlobeProps) => {
   const meshRef = useRef<THREE.Mesh>(null);
   
+  // Create realistic Earth texture using canvas
+  const earthTexture = useMemo(() => {
+    const canvas = document.createElement('canvas');
+    canvas.width = 1024;
+    canvas.height = 512;
+    const ctx = canvas.getContext('2d');
+    
+    if (!ctx) return null;
+    
+    // Create base ocean color
+    ctx.fillStyle = '#1a4d66';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
+    // Function to draw continent-like shapes
+    const drawContinent = (x: number, y: number, width: number, height: number, color: string) => {
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      ctx.ellipse(x, y, width, height, 0, 0, 2 * Math.PI);
+      ctx.fill();
+      
+      // Add some irregular edges
+      for (let i = 0; i < 8; i++) {
+        const angle = (i / 8) * 2 * Math.PI;
+        const offsetX = Math.cos(angle) * width * 0.8;
+        const offsetY = Math.sin(angle) * height * 0.8;
+        ctx.beginPath();
+        ctx.ellipse(x + offsetX, y + offsetY, width * 0.3, height * 0.3, 0, 0, 2 * Math.PI);
+        ctx.fill();
+      }
+    };
+    
+    // Draw continents with Earth-like colors
+    const landColor1 = '#2d5016'; // Dark green
+    const landColor2 = '#4a7c59'; // Medium green
+    const landColor3 = '#8b4513'; // Brown for mountains/deserts
+    
+    // Africa and Europe
+    drawContinent(512, 200, 80, 120, landColor1);
+    drawContinent(480, 140, 60, 40, landColor2);
+    
+    // Asia
+    drawContinent(650, 160, 120, 80, landColor1);
+    drawContinent(750, 180, 80, 60, landColor2);
+    
+    // North America
+    drawContinent(200, 140, 90, 100, landColor1);
+    drawContinent(150, 120, 70, 80, landColor2);
+    
+    // South America
+    drawContinent(250, 300, 60, 120, landColor1);
+    
+    // Australia
+    drawContinent(800, 350, 80, 40, landColor3);
+    
+    // Greenland
+    drawContinent(300, 80, 40, 30, landColor3);
+    
+    // Additional smaller landmasses
+    for (let i = 0; i < 20; i++) {
+      const x = Math.random() * canvas.width;
+      const y = Math.random() * canvas.height;
+      const size = Math.random() * 15 + 5;
+      drawContinent(x, y, size, size * 0.7, Math.random() > 0.5 ? landColor2 : landColor3);
+    }
+    
+    // Add some cloud-like effects for atmosphere
+    ctx.globalAlpha = 0.3;
+    ctx.fillStyle = '#ffffff';
+    for (let i = 0; i < 30; i++) {
+      const x = Math.random() * canvas.width;
+      const y = Math.random() * canvas.height;
+      const radius = Math.random() * 20 + 10;
+      ctx.beginPath();
+      ctx.ellipse(x, y, radius, radius * 0.6, 0, 0, 2 * Math.PI);
+      ctx.fill();
+    }
+    
+    return new THREE.CanvasTexture(canvas);
+  }, []);
+
   // Auto-rotate the globe
   useFrame((state, delta) => {
     if (meshRef.current) {
@@ -45,9 +125,9 @@ const EarthSphere = ({ onCoordinateClick }: GlobeProps) => {
     >
       <sphereGeometry args={[2, 64, 64]} />
       <meshPhongMaterial
-        color="#4a90e2"
-        transparent={true}
-        opacity={0.9}
+        map={earthTexture}
+        shininess={10}
+        transparent={false}
       />
     </mesh>
   );
@@ -76,13 +156,13 @@ const InteractiveGlobe = () => {
         <div className="relative">
           <div className="h-[600px] w-full rounded-lg overflow-hidden bg-cosmic-black border border-cosmic-blue/30">
             <Canvas camera={{ position: [0, 0, 8], fov: 45 }}>
-              <ambientLight intensity={0.3} />
+              <ambientLight intensity={0.4} />
               <directionalLight 
                 position={[5, 5, 5]} 
-                intensity={1}
+                intensity={1.2}
                 castShadow
               />
-              <pointLight position={[-5, -5, -5]} intensity={0.5} />
+              <pointLight position={[-5, -5, -5]} intensity={0.3} />
               
               <Stars 
                 radius={100} 
