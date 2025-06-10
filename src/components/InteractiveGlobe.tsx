@@ -10,7 +10,7 @@ interface GlobeProps {
 
 interface BounceEffect {
   id: number;
-  center: THREE.Vector3;
+  center: THREE.Vector3; // In local sphere coordinates (before rotation)
   startTime: number;
   duration: number;
 }
@@ -75,7 +75,7 @@ const EarthSphere = ({ onCoordinateClick, onTexturesLoaded }: GlobeProps) => {
           activeEffects.push(effect);
           
           // Create bounce animation with easing
-          const bounceHeight = Math.sin(progress * Math.PI * 3) * (1 - progress) * 0.15;
+          const bounceHeight = Math.sin(progress * Math.PI * 3) * (1 - progress) * 0.12;
           
           // Apply bounce to nearby vertices
           for (let i = 0; i < positionArray.length; i += 3) {
@@ -85,8 +85,9 @@ const EarthSphere = ({ onCoordinateClick, onTexturesLoaded }: GlobeProps) => {
               originalPositions.current[i + 2]
             );
             
+            // vertex is already in local coordinates (unrotated sphere)
             const distance = vertex.distanceTo(effect.center);
-            const maxDistance = 0.3; // Influence radius
+            const maxDistance = 0.15; // Smaller influence radius for more constrained bounce
             
             if (distance < maxDistance) {
               const influence = Math.cos((distance / maxDistance) * Math.PI * 0.5);
@@ -125,12 +126,20 @@ const EarthSphere = ({ onCoordinateClick, onTexturesLoaded }: GlobeProps) => {
     const lat = Math.asin(point.y / radius) * (180 / Math.PI);
     const lng = Math.atan2(point.x, point.z) * (180 / Math.PI);
 
-    // Create bounce effect at click location
-    const bounceCenter = new THREE.Vector3(point.x, point.y, point.z).normalize().multiplyScalar(2);
+    // Convert world coordinates to local sphere coordinates (unrotated)
+    // We need to inverse the current rotation to get the "static" position on the sphere
+    const currentRotation = meshRef.current.rotation.y;
+    const localPoint = new THREE.Vector3(point.x, point.y, point.z);
+    
+    // Rotate the point backwards to get its position on the "unrotated" sphere
+    const rotationMatrix = new THREE.Matrix4().makeRotationY(-currentRotation);
+    localPoint.applyMatrix4(rotationMatrix);
+    
+    const bounceCenter = localPoint.normalize().multiplyScalar(2);
     
     const newBounce: BounceEffect = {
       id: bounceIdCounter.current++,
-      center: bounceCenter,
+      center: bounceCenter, // Now in local coordinates
       startTime: Date.now(),
       duration: 1500 // 1.5 seconds
     };
