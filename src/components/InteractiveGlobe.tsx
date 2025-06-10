@@ -4,114 +4,23 @@ import { OrbitControls, Stars } from '@react-three/drei';
 import * as THREE from 'three';
 
 interface GlobeProps {
-  onCoordinateClick: (lat: number, lng: number, worldPosition: THREE.Vector3) => void;
+  onCoordinateClick: (lat: number, lng: number) => void;
   onTexturesLoaded: () => void;
 }
 
-interface PinProps {
-  position: THREE.Vector3;
-  onComplete: () => void;
+interface BounceEffect {
+  id: number;
+  center: THREE.Vector3;
+  startTime: number;
+  duration: number;
 }
-
-const Pin3D = ({ position, onComplete }: PinProps) => {
-  const pinRef = useRef<THREE.Group>(null);
-  const [scale, setScale] = useState(0);
-  const [opacity, setOpacity] = useState(1);
-
-  useEffect(() => {
-    // Animation for pin appearance
-    const startTime = Date.now();
-    const duration = 200; // 200ms for scale animation
-    
-    const animateIn = () => {
-      const elapsed = Date.now() - startTime;
-      const progress = Math.min(elapsed / duration, 1);
-      const easeOut = 1 - Math.pow(1 - progress, 3);
-      setScale(easeOut);
-      
-      if (progress < 1) {
-        requestAnimationFrame(animateIn);
-      } else {
-        // Start fade out after 2.5 seconds (total 3 seconds including scale animation)
-        setTimeout(() => {
-          const fadeStartTime = Date.now();
-          const fadeDuration = 300;
-          
-          const animateOut = () => {
-            const fadeElapsed = Date.now() - fadeStartTime;
-            const fadeProgress = Math.min(fadeElapsed / fadeDuration, 1);
-            setOpacity(1 - fadeProgress);
-            
-            if (fadeProgress < 1) {
-              requestAnimationFrame(animateOut);
-            } else {
-              onComplete();
-            }
-          };
-          animateOut();
-        }, 2500);
-      }
-    };
-    animateIn();
-  }, [onComplete]);
-
-  useFrame(() => {
-    if (pinRef.current) {
-      // Gentle floating animation
-      pinRef.current.position.y = position.y + Math.sin(Date.now() * 0.003) * 0.02;
-    }
-  });
-
-  return (
-    <group ref={pinRef} position={[position.x, position.y, position.z]} scale={scale}>
-      {/* Pin pole */}
-      <mesh position={[0, 0.15, 0]}>
-        <cylinderGeometry args={[0.008, 0.008, 0.3, 8]} />
-        <meshPhongMaterial 
-          color="#ff4444" 
-          transparent 
-          opacity={opacity}
-          shininess={100}
-        />
-      </mesh>
-      
-      {/* Pin head (sphere) */}
-      <mesh position={[0, 0.32, 0]}>
-        <sphereGeometry args={[0.04, 16, 16]} />
-        <meshPhongMaterial 
-          color="#ff2222" 
-          transparent 
-          opacity={opacity}
-          shininess={200}
-          emissive="#440000"
-        />
-      </mesh>
-      
-      {/* Pin base (small cylinder for ground contact) */}
-      <mesh position={[0, 0.005, 0]}>
-        <cylinderGeometry args={[0.015, 0.015, 0.01, 8]} />
-        <meshPhongMaterial 
-          color="#cc0000" 
-          transparent 
-          opacity={opacity * 0.8}
-        />
-      </mesh>
-      
-      {/* Glow effect */}
-      <mesh position={[0, 0.32, 0]}>
-        <sphereGeometry args={[0.06, 16, 16]} />
-        <meshBasicMaterial 
-          color="#ff6666" 
-          transparent 
-          opacity={opacity * 0.3}
-        />
-      </mesh>
-    </group>
-  );
-};
 
 const EarthSphere = ({ onCoordinateClick, onTexturesLoaded }: GlobeProps) => {
   const meshRef = useRef<THREE.Mesh>(null);
+  const geometryRef = useRef<THREE.SphereGeometry>(null);
+  const originalPositions = useRef<Float32Array | null>(null);
+  const [bounceEffects, setBounceEffects] = useState<BounceEffect[]>([]);
+  const bounceIdCounter = useRef(0);
 
   const earthTexture = useLoader(
     THREE.TextureLoader,
@@ -132,9 +41,77 @@ const EarthSphere = ({ onCoordinateClick, onTexturesLoaded }: GlobeProps) => {
     }
   }, [earthTexture, bumpTexture, specularTexture, onTexturesLoaded]);
 
+  // Store original vertex positions
+  useEffect(() => {
+    if (geometryRef.current && !originalPositions.current) {
+      const positions = geometryRef.current.attributes.position;
+      originalPositions.current = new Float32Array(positions.array);
+    }
+  }, []);
+
   useFrame((state, delta) => {
     if (meshRef.current) {
       meshRef.current.rotation.y += delta * 0.08;
+    }
+
+    // Apply bounce effects
+    if (geometryRef.current && originalPositions.current) {
+      const positions = geometryRef.current.attributes.position;
+      const positionArray = positions.array as Float32Array;
+      
+      // Reset to original positions
+      for (let i = 0; i < positionArray.length; i++) {
+        positionArray[i] = originalPositions.current[i];
+      }
+
+      const currentTime = Date.now();
+      const activeEffects: BounceEffect[] = [];
+
+      bounceEffects.forEach(effect => {
+        const elapsed = currentTime - effect.startTime;
+        const progress = elapsed / effect.duration;
+
+        if (progress < 1) {
+          activeEffects.push(effect);
+          
+          // Create bounce animation with easing
+          const bounceHeight = Math.sin(progress * Math.PI * 3) * (1 - progress) * 0.15;
+          
+          // Apply bounce to nearby vertices
+          for (let i = 0; i < positionArray.length; i += 3) {
+            const vertex = new THREE.Vector3(
+              originalPositions.current[i],
+              originalPositions.current[i + 1],
+              originalPositions.current[i + 2]
+            );
+            
+            const distance = vertex.distanceTo(effect.center);
+            const maxDistance = 0.3; // Influence radius
+            
+            if (distance < maxDistance) {
+              const influence = Math.cos((distance / maxDistance) * Math.PI * 0.5);
+              const displacement = bounceHeight * influence;
+              
+              // Move vertex outward along its normal
+              vertex.normalize().multiplyScalar(2 + displacement);
+              
+              positionArray[i] = vertex.x;
+              positionArray[i + 1] = vertex.y;
+              positionArray[i + 2] = vertex.z;
+            }
+          }
+        }
+      });
+
+      // Update bounce effects list
+      if (activeEffects.length !== bounceEffects.length) {
+        setBounceEffects(activeEffects);
+      }
+
+      positions.needsUpdate = true;
+      if (geometryRef.current.attributes.normal) {
+        geometryRef.current.computeVertexNormals();
+      }
     }
   });
 
@@ -148,19 +125,24 @@ const EarthSphere = ({ onCoordinateClick, onTexturesLoaded }: GlobeProps) => {
     const lat = Math.asin(point.y / radius) * (180 / Math.PI);
     const lng = Math.atan2(point.x, point.z) * (180 / Math.PI);
 
-    // Calculate the world position for the pin (slightly above surface)
-    const worldPosition = new THREE.Vector3(
-      point.x * 1.01, // Slightly outside the sphere
-      point.y * 1.01,
-      point.z * 1.01
-    );
+    // Create bounce effect at click location
+    const bounceCenter = new THREE.Vector3(point.x, point.y, point.z).normalize().multiplyScalar(2);
+    
+    const newBounce: BounceEffect = {
+      id: bounceIdCounter.current++,
+      center: bounceCenter,
+      startTime: Date.now(),
+      duration: 1500 // 1.5 seconds
+    };
 
-    onCoordinateClick(lat, lng, worldPosition);
+    setBounceEffects(prev => [...prev, newBounce]);
+
+    onCoordinateClick(lat, lng);
   }, [onCoordinateClick]);
 
   return (
     <mesh ref={meshRef} onClick={handleClick} position={[0, 0, 0]}>
-      <sphereGeometry args={[2, 256, 128]} />
+      <sphereGeometry ref={geometryRef} args={[2, 128, 64]} />
       <meshPhongMaterial
         map={earthTexture}
         bumpMap={bumpTexture}
@@ -193,22 +175,9 @@ const LoadingEarth = () => {
 const InteractiveGlobe = () => {
   const [selectedCoords, setSelectedCoords] = useState<{ lat: number, lng: number } | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [pins, setPins] = useState<Array<{ id: number, position: THREE.Vector3, lat: number, lng: number }>>([]);
-  const [pinIdCounter, setPinIdCounter] = useState(0);
 
-  const handleCoordinateClick = useCallback((lat: number, lng: number, worldPosition: THREE.Vector3) => {
+  const handleCoordinateClick = useCallback((lat: number, lng: number) => {
     setSelectedCoords({ lat, lng });
-
-    // Create new pin
-    const newPin = {
-      id: pinIdCounter,
-      position: worldPosition,
-      lat,
-      lng
-    };
-
-    setPins(prev => [...prev, newPin]);
-    setPinIdCounter(prev => prev + 1);
 
     const notification = document.createElement('div');
     notification.innerHTML = `📍 Coordinates: ${lat.toFixed(2)}°, ${lng.toFixed(2)}°`;
@@ -227,10 +196,6 @@ const InteractiveGlobe = () => {
     `;
     document.body.appendChild(notification);
     setTimeout(() => notification.remove(), 3000);
-  }, [pinIdCounter]);
-
-  const removePin = useCallback((pinId: number) => {
-    setPins(prev => prev.filter(pin => pin.id !== pinId));
   }, []);
 
   return (
@@ -281,15 +246,6 @@ const InteractiveGlobe = () => {
                   onCoordinateClick={handleCoordinateClick}
                   onTexturesLoaded={() => setIsLoading(false)}
                 />
-                
-                {/* Render all active pins */}
-                {pins.map(pin => (
-                  <Pin3D
-                    key={pin.id}
-                    position={pin.position}
-                    onComplete={() => removePin(pin.id)}
-                  />
-                ))}
               </Suspense>
 
               <OrbitControls
@@ -357,7 +313,7 @@ const InteractiveGlobe = () => {
             </div>
             <div className="text-gray-300 text-xs space-y-2">
               <div className="flex items-center">
-                <span className="w-16 text-blue-300">Click:</span> <span>Select coordinates</span>
+                <span className="w-16 text-blue-300">Click:</span> <span>Bounce & coordinates</span>
               </div>
               <div className="flex items-center">
                 <span className="w-16 text-blue-300">Drag:</span> <span>Rotate globe</span>
@@ -366,7 +322,7 @@ const InteractiveGlobe = () => {
                 <span className="w-16 text-blue-300">Scroll:</span> <span>Zoom in/out</span>
               </div>
               <div className="flex items-center">
-                <span className="w-16 text-blue-300">Pin:</span> <span>Disappears in 3s</span>
+                <span className="w-16 text-blue-300">Bounce:</span> <span>Lasts 1.5 seconds</span>
               </div>
             </div>
           </div>
@@ -374,7 +330,7 @@ const InteractiveGlobe = () => {
           <div className="absolute bottom-6 right-6 bg-black/80 backdrop-blur-sm border border-gray-600/30 rounded-lg p-3 text-xs text-gray-400">
             <div>📡 Imagery: NASA Blue Marble</div>
             <div>🛰️ Real satellite data</div>
-            <div>📍 3D Pin markers</div>
+            <div>🎯 Interactive bounce effects</div>
           </div>
         </div>
       </div>
