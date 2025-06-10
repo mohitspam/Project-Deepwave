@@ -8,15 +8,7 @@ interface GlobeProps {
   onTexturesLoaded: () => void;
 }
 
-const EarthSphere = ({
-  onCoordinateClick,
-  onTexturesLoaded,
-  markerPosition,
-  setMarkerPosition
-}: GlobeProps & {
-  markerPosition: THREE.Vector3 | null;
-  setMarkerPosition: (v: THREE.Vector3) => void;
-}) => {
+const EarthSphere = ({ onCoordinateClick, onTexturesLoaded }: GlobeProps) => {
   const meshRef = useRef<THREE.Mesh>(null);
 
   const earthTexture = useLoader(
@@ -44,75 +36,37 @@ const EarthSphere = ({
     }
   });
 
-  const handleClick = useCallback(
-    (event: any) => {
-      event.stopPropagation();
+  const handleClick = useCallback((event: any) => {
+    event.stopPropagation();
 
-      if (!meshRef.current) return;
+    if (!meshRef.current) return;
 
-      const point = event.point.clone().normalize().multiplyScalar(2); // radius = 2
-      setMarkerPosition(point);
+    const point = event.point;
+    const radius = 2;
+    const lat = Math.asin(point.y / radius) * (180 / Math.PI);
+    const lng = Math.atan2(point.x, point.z) * (180 / Math.PI);
 
-      const lat = Math.asin(point.y / 2) * (180 / Math.PI);
-      const lng = Math.atan2(point.x, point.z) * (180 / Math.PI);
-      onCoordinateClick(lat, lng);
-    },
-    [onCoordinateClick, setMarkerPosition]
-  );
+    onCoordinateClick(lat, lng);
+  }, [onCoordinateClick]);
 
   return (
-    <group>
-      <mesh ref={meshRef} onClick={handleClick} position={[0, 0, 0]}>
-        <sphereGeometry args={[2, 256, 128]} />
-        <meshPhongMaterial
-          map={earthTexture}
-          bumpMap={bumpTexture}
-          bumpScale={0.05}
-          specularMap={specularTexture}
-          specular={new THREE.Color(0x88aaff)}
-          shininess={150}
-        />
-      </mesh>
-
-      {/* Marker Sphere */}
-      {markerPosition && <ClickMarker position={markerPosition} />}
-
-      {/* Atmosphere Glow */}
-      <mesh scale={1.03}>
-        <sphereGeometry args={[2, 128, 64]} />
-        <meshBasicMaterial
-          color={new THREE.Color(0x88ccff)}
-          transparent
-          opacity={0.08}
-          side={THREE.BackSide}
-        />
-      </mesh>
-    </group>
-  );
-};
-
-const ClickMarker = ({ position }: { position: THREE.Vector3 }) => {
-  const ref = useRef<THREE.Mesh>(null);
-  const scaleRef = useRef(1);
-
-  useFrame((_, delta) => {
-    if (ref.current) {
-      scaleRef.current += delta * 2;
-      const scale = 1 + Math.sin(scaleRef.current * 2) * 0.2;
-      ref.current.scale.set(scale, scale, scale);
-    }
-  });
-
-  return (
-    <mesh position={position} ref={ref}>
-      <sphereGeometry args={[0.05, 32, 32]} />
-      <meshBasicMaterial color="#00ffff" emissive="#00ffff" transparent opacity={0.9} />
+    <mesh ref={meshRef} onClick={handleClick} position={[0, 0, 0]}>
+      <sphereGeometry args={[2, 256, 128]} />
+      <meshPhongMaterial
+        map={earthTexture}
+        bumpMap={bumpTexture}
+        bumpScale={0.05}
+        specularMap={specularTexture}
+        specular={new THREE.Color(0x88aaff)} // brighter highlights
+        shininess={150} // more reflective
+      />
     </mesh>
   );
 };
 
 const LoadingEarth = () => {
   const meshRef = useRef<THREE.Mesh>(null);
+
   useFrame((state, delta) => {
     if (meshRef.current) {
       meshRef.current.rotation.y += delta * 0.08;
@@ -128,9 +82,8 @@ const LoadingEarth = () => {
 };
 
 const InteractiveGlobe = () => {
-  const [selectedCoords, setSelectedCoords] = useState<{ lat: number; lng: number } | null>(null);
+  const [selectedCoords, setSelectedCoords] = useState<{ lat: number, lng: number } | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [markerPosition, setMarkerPosition] = useState<THREE.Vector3 | null>(null);
 
   const handleCoordinateClick = useCallback((lat: number, lng: number) => {
     setSelectedCoords({ lat, lng });
@@ -169,18 +122,41 @@ const InteractiveGlobe = () => {
           <div className="h-[700px] w-full rounded-xl overflow-hidden bg-black border border-blue-500/20 shadow-2xl">
             <Canvas camera={{ position: [0, 0, 6], fov: 50 }}>
               <ambientLight intensity={0.4} />
-              <directionalLight position={[5, 3, 5]} intensity={3.0} castShadow color="#ffffff" />
-              <directionalLight position={[-4, 2, -2]} intensity={1.5} color="#ddddff" />
+
+              {/* Primary sunlight */}
+              <directionalLight
+                position={[5, 3, 5]}
+                intensity={3.0}
+                castShadow
+                color="#ffffff"
+              />
+
+              {/* Rim light for extra glow */}
+              <directionalLight
+                position={[-4, 2, -2]}
+                intensity={1.5}
+                color="#ddddff"
+              />
+
               <pointLight position={[-3, -3, -3]} intensity={0.5} color="#88ccff" />
-              <Stars radius={200} depth={60} count={10000} factor={4} saturation={0} fade speed={0.3} />
+
+              <Stars
+                radius={200}
+                depth={60}
+                count={10000}
+                factor={4}
+                saturation={0}
+                fade
+                speed={0.3}
+              />
+
               <Suspense fallback={<LoadingEarth />}>
                 <EarthSphere
                   onCoordinateClick={handleCoordinateClick}
                   onTexturesLoaded={() => setIsLoading(false)}
-                  markerPosition={markerPosition}
-                  setMarkerPosition={setMarkerPosition}
                 />
               </Suspense>
+
               <OrbitControls
                 enablePan={false}
                 enableZoom={true}
@@ -206,7 +182,6 @@ const InteractiveGlobe = () => {
             </div>
           )}
 
-          {/* coordinate popup remains unchanged */}
           {selectedCoords && (
             <div className="absolute top-6 right-6 bg-black/90 backdrop-blur-md border border-blue-400/40 rounded-lg p-6 min-w-[280px] shadow-2xl">
               <h3 className="text-blue-400 text-xl font-bold mb-4 flex items-center">
@@ -225,10 +200,14 @@ const InteractiveGlobe = () => {
                     {selectedCoords.lng.toFixed(6)}°
                   </span>
                 </div>
+                <div className="pt-2 border-t border-gray-600">
+                  <div className="text-xs text-gray-400 mb-2">Coordinate System: WGS84</div>
+                </div>
               </div>
               <button
                 className="mt-4 w-full bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white py-3 px-4 rounded-lg transition-all duration-200 transform hover:scale-105 font-semibold"
                 onClick={() => {
+                  console.log('Getting prediction for:', selectedCoords);
                   alert(`🌊 Analyzing location: ${selectedCoords.lat.toFixed(4)}°, ${selectedCoords.lng.toFixed(4)}°`);
                 }}
               >
@@ -236,6 +215,31 @@ const InteractiveGlobe = () => {
               </button>
             </div>
           )}
+
+          <div className="absolute bottom-6 left-6 bg-black/90 backdrop-blur-md border border-blue-400/40 rounded-lg p-4 max-w-xs shadow-2xl">
+            <div className="text-blue-400 font-bold text-sm mb-3 flex items-center">
+              <span className="mr-2">🎮</span> Controls
+            </div>
+            <div className="text-gray-300 text-xs space-y-2">
+              <div className="flex items-center">
+                <span className="w-16 text-blue-300">Click:</span> <span>Select coordinates</span>
+              </div>
+              <div className="flex items-center">
+                <span className="w-16 text-blue-300">Drag:</span> <span>Rotate globe</span>
+              </div>
+              <div className="flex items-center">
+                <span className="w-16 text-blue-300">Scroll:</span> <span>Zoom in/out</span>
+              </div>
+              <div className="flex items-center">
+                <span className="w-16 text-blue-300">Auto:</span> <span>Slow rotation</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="absolute bottom-6 right-6 bg-black/80 backdrop-blur-sm border border-gray-600/30 rounded-lg p-3 text-xs text-gray-400">
+            <div>📡 Imagery: NASA Blue Marble</div>
+            <div>🛰️ Real satellite data</div>
+          </div>
         </div>
       </div>
     </div>
