@@ -126,11 +126,21 @@ const EarthSphere = ({ onCoordinateClick, onTexturesLoaded }: GlobeProps) => {
     
     // Normalize the point to ensure it's on the sphere surface
     const normalizedPoint = point.clone().normalize().multiplyScalar(radius);
-    const x = normalizedPoint.x;
-    const y = normalizedPoint.y;
-    const z = normalizedPoint.z;
     
-    // CORRECT coordinate conversion for proper lat/lng mapping
+    // CRITICAL FIX: Account for the Earth's current rotation to get stable coordinates
+    const currentRotation = meshRef.current.rotation.y;
+    
+    // Create a rotation matrix to counter the Earth's rotation
+    const rotationMatrix = new THREE.Matrix4().makeRotationY(-currentRotation);
+    
+    // Apply the inverse rotation to get the original geographic position
+    const originalPoint = normalizedPoint.clone().applyMatrix4(rotationMatrix);
+    
+    const x = originalPoint.x;
+    const y = originalPoint.y;
+    const z = originalPoint.z;
+    
+    // Now calculate coordinates from the rotation-corrected position
     const lat = Math.asin(y / radius) * (180 / Math.PI);
     let lng = Math.atan2(-x, -z) * (180 / Math.PI);
     
@@ -139,10 +149,9 @@ const EarthSphere = ({ onCoordinateClick, onTexturesLoaded }: GlobeProps) => {
     if (lng > 180) lng -= 360;
 
     // Convert world coordinates to local sphere coordinates for bounce effect
-    const currentRotation = meshRef.current.rotation.y;
     const localPoint = new THREE.Vector3(point.x, point.y, point.z);
-    const rotationMatrix = new THREE.Matrix4().makeRotationY(-currentRotation);
-    localPoint.applyMatrix4(rotationMatrix);
+    const rotationMatrixForBounce = new THREE.Matrix4().makeRotationY(-currentRotation);
+    localPoint.applyMatrix4(rotationMatrixForBounce);
     const bounceCenter = localPoint.normalize().multiplyScalar(2);
     
     const newBounce: BounceEffect = {
