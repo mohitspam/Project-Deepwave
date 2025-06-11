@@ -1,47 +1,25 @@
+// Clean version of your globe without country labeling
 import { useRef, useState, useCallback, useEffect, Suspense } from 'react';
 import { Canvas, useFrame, useLoader } from '@react-three/fiber';
 import { OrbitControls, Stars } from '@react-three/drei';
 import * as THREE from 'three';
 
-interface GlobeProps {
-  onCoordinateClick: (lat: number, lng: number) => void;
-  onTexturesLoaded: () => void;
-}
-
-interface BounceEffect {
-  id: number;
-  center: THREE.Vector3; // In local sphere coordinates (before rotation)
-  startTime: number;
-  duration: number;
-}
-
-const EarthSphere = ({ onCoordinateClick, onTexturesLoaded }: GlobeProps) => {
-  const meshRef = useRef<THREE.Mesh>(null);
-  const geometryRef = useRef<THREE.SphereGeometry>(null);
-  const originalPositions = useRef<Float32Array | null>(null);
-  const [bounceEffects, setBounceEffects] = useState<BounceEffect[]>([]);
+const EarthSphere = ({ onCoordinateClick, onTexturesLoaded }) => {
+  const meshRef = useRef(null);
+  const geometryRef = useRef(null);
+  const originalPositions = useRef(null);
+  const [bounceEffects, setBounceEffects] = useState([]);
   const bounceIdCounter = useRef(0);
 
-  const earthTexture = useLoader(
-    THREE.TextureLoader,
-    'https://cdn.jsdelivr.net/gh/mrdoob/three.js@dev/examples/textures/planets/earth_atmos_2048.jpg'
-  );
-  const bumpTexture = useLoader(
-    THREE.TextureLoader,
-    'https://cdn.jsdelivr.net/gh/mrdoob/three.js@dev/examples/textures/planets/earth_normal_2048.jpg'
-  );
-  const specularTexture = useLoader(
-    THREE.TextureLoader,
-    'https://cdn.jsdelivr.net/gh/mrdoob/three.js@dev/examples/textures/planets/earth_specular_2048.jpg'
-  );
+  const earthTexture = useLoader(THREE.TextureLoader, 'https://cdn.jsdelivr.net/gh/mrdoob/three.js@dev/examples/textures/planets/earth_atmos_2048.jpg');
+  const bumpTexture = useLoader(THREE.TextureLoader, 'https://cdn.jsdelivr.net/gh/mrdoob/three.js@dev/examples/textures/planets/earth_normal_2048.jpg');
+  const specularTexture = useLoader(THREE.TextureLoader, 'https://cdn.jsdelivr.net/gh/mrdoob/three.js@dev/examples/textures/planets/earth_specular_2048.jpg');
 
   useEffect(() => {
-    if (earthTexture && bumpTexture && specularTexture) {
-      onTexturesLoaded();
-    }
+    const timer = setTimeout(() => onTexturesLoaded(), 100);
+    return () => clearTimeout(timer);
   }, [earthTexture, bumpTexture, specularTexture, onTexturesLoaded]);
 
-  // Store original vertex positions
   useEffect(() => {
     if (geometryRef.current && !originalPositions.current) {
       const positions = geometryRef.current.attributes.position;
@@ -54,18 +32,16 @@ const EarthSphere = ({ onCoordinateClick, onTexturesLoaded }: GlobeProps) => {
       meshRef.current.rotation.y += delta * 0.08;
     }
 
-    // Apply bounce effects
     if (geometryRef.current && originalPositions.current) {
       const positions = geometryRef.current.attributes.position;
-      const positionArray = positions.array as Float32Array;
-      
-      // Reset to original positions
+      const positionArray = positions.array;
+
       for (let i = 0; i < positionArray.length; i++) {
         positionArray[i] = originalPositions.current[i];
       }
 
       const currentTime = Date.now();
-      const activeEffects: BounceEffect[] = [];
+      const activeEffects = [];
 
       bounceEffects.forEach(effect => {
         const elapsed = currentTime - effect.startTime;
@@ -73,29 +49,25 @@ const EarthSphere = ({ onCoordinateClick, onTexturesLoaded }: GlobeProps) => {
 
         if (progress < 1) {
           activeEffects.push(effect);
-          
-          // Create bounce animation with easing
+
           const bounceHeight = Math.sin(progress * Math.PI * 3) * (1 - progress) * 0.12;
-          
-          // Apply bounce to nearby vertices
+
           for (let i = 0; i < positionArray.length; i += 3) {
             const vertex = new THREE.Vector3(
               originalPositions.current[i],
               originalPositions.current[i + 1],
               originalPositions.current[i + 2]
             );
-            
-            // vertex is already in local coordinates (unrotated sphere)
+
             const distance = vertex.distanceTo(effect.center);
-            const maxDistance = 0.15; // Smaller influence radius for more constrained bounce
-            
+            const maxDistance = 0.15;
+
             if (distance < maxDistance) {
               const influence = Math.cos((distance / maxDistance) * Math.PI * 0.5);
               const displacement = bounceHeight * influence;
-              
-              // Move vertex outward along its normal
+
               vertex.normalize().multiplyScalar(2 + displacement);
-              
+
               positionArray[i] = vertex.x;
               positionArray[i + 1] = vertex.y;
               positionArray[i + 2] = vertex.z;
@@ -104,7 +76,6 @@ const EarthSphere = ({ onCoordinateClick, onTexturesLoaded }: GlobeProps) => {
         }
       });
 
-      // Update bounce effects list
       if (activeEffects.length !== bounceEffects.length) {
         setBounceEffects(activeEffects);
       }
@@ -116,36 +87,39 @@ const EarthSphere = ({ onCoordinateClick, onTexturesLoaded }: GlobeProps) => {
     }
   });
 
-  const handleClick = useCallback((event: any) => {
+  const handleClick = useCallback(event => {
     event.stopPropagation();
 
     if (!meshRef.current) return;
 
     const point = event.point;
     const radius = 2;
-    const lat = Math.asin(point.y / radius) * (180 / Math.PI);
-    const lng = Math.atan2(point.x, point.z) * (180 / Math.PI);
-
-    // Convert world coordinates to local sphere coordinates (unrotated)
-    // We need to inverse the current rotation to get the "static" position on the sphere
+    const normalizedPoint = point.clone().normalize().multiplyScalar(radius);
     const currentRotation = meshRef.current.rotation.y;
-    const localPoint = new THREE.Vector3(point.x, point.y, point.z);
-    
-    // Rotate the point backwards to get its position on the "unrotated" sphere
     const rotationMatrix = new THREE.Matrix4().makeRotationY(-currentRotation);
+    const originalPoint = normalizedPoint.clone().applyMatrix4(rotationMatrix);
+
+    const x = originalPoint.x;
+    const y = originalPoint.y;
+    const z = originalPoint.z;
+
+    const lat = Math.asin(y / radius) * (180 / Math.PI);
+    let lng = Math.atan2(-x, -z) * (180 / Math.PI);
+    if (lng < -180) lng += 360;
+    if (lng > 180) lng -= 360;
+
+    const localPoint = new THREE.Vector3(point.x, point.y, point.z);
     localPoint.applyMatrix4(rotationMatrix);
-    
     const bounceCenter = localPoint.normalize().multiplyScalar(2);
-    
-    const newBounce: BounceEffect = {
+
+    const newBounce = {
       id: bounceIdCounter.current++,
-      center: bounceCenter, // Now in local coordinates
+      center: bounceCenter,
       startTime: Date.now(),
-      duration: 1500 // 1.5 seconds
+      duration: 1500
     };
 
     setBounceEffects(prev => [...prev, newBounce]);
-
     onCoordinateClick(lat, lng);
   }, [onCoordinateClick]);
 
@@ -165,7 +139,7 @@ const EarthSphere = ({ onCoordinateClick, onTexturesLoaded }: GlobeProps) => {
 };
 
 const LoadingEarth = () => {
-  const meshRef = useRef<THREE.Mesh>(null);
+  const meshRef = useRef(null);
 
   useFrame((state, delta) => {
     if (meshRef.current) {
@@ -182,12 +156,11 @@ const LoadingEarth = () => {
 };
 
 const InteractiveGlobe = () => {
-  const [selectedCoords, setSelectedCoords] = useState<{ lat: number, lng: number } | null>(null);
+  const [selectedCoords, setSelectedCoords] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  const handleCoordinateClick = useCallback((lat: number, lng: number) => {
+  const handleCoordinateClick = useCallback((lat, lng) => {
     setSelectedCoords({ lat, lng });
-
     const notification = document.createElement('div');
     notification.innerHTML = `📍 Coordinates: ${lat.toFixed(2)}°, ${lng.toFixed(2)}°`;
     notification.style.cssText = `
@@ -207,6 +180,10 @@ const InteractiveGlobe = () => {
     setTimeout(() => notification.remove(), 3000);
   }, []);
 
+  const handleTexturesLoaded = useCallback(() => {
+    setIsLoading(false);
+  }, []);
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-indigo-900 via-purple-900 to-black p-4">
       <div className="max-w-7xl mx-auto">
@@ -222,41 +199,13 @@ const InteractiveGlobe = () => {
           <div className="h-[700px] w-full rounded-xl overflow-hidden bg-black border border-blue-500/20 shadow-2xl">
             <Canvas camera={{ position: [0, 0, 6], fov: 50 }}>
               <ambientLight intensity={0.4} />
-
-              {/* Primary sunlight */}
-              <directionalLight
-                position={[5, 3, 5]}
-                intensity={3.0}
-                castShadow
-                color="#ffffff"
-              />
-
-              {/* Rim light for extra glow */}
-              <directionalLight
-                position={[-4, 2, -2]}
-                intensity={1.5}
-                color="#ddddff"
-              />
-
+              <directionalLight position={[5, 3, 5]} intensity={3.0} castShadow color="#ffffff" />
+              <directionalLight position={[-4, 2, -2]} intensity={1.5} color="#ddddff" />
               <pointLight position={[-3, -3, -3]} intensity={0.5} color="#88ccff" />
-
-              <Stars
-                radius={200}
-                depth={60}
-                count={10000}
-                factor={4}
-                saturation={0}
-                fade
-                speed={0.3}
-              />
-
+              <Stars radius={200} depth={60} count={10000} factor={4} saturation={0} fade speed={0.3} />
               <Suspense fallback={<LoadingEarth />}>
-                <EarthSphere
-                  onCoordinateClick={handleCoordinateClick}
-                  onTexturesLoaded={() => setIsLoading(false)}
-                />
+                <EarthSphere onCoordinateClick={handleCoordinateClick} onTexturesLoaded={handleTexturesLoaded} />
               </Suspense>
-
               <OrbitControls
                 enablePan={false}
                 enableZoom={true}
@@ -277,7 +226,6 @@ const InteractiveGlobe = () => {
               <div className="text-center">
                 <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-400 mx-auto mb-4"></div>
                 <p className="text-white text-lg">Loading NASA Earth Textures...</p>
-                <p className="text-gray-400 text-sm">High-resolution satellite imagery</p>
               </div>
             </div>
           )}
@@ -300,47 +248,9 @@ const InteractiveGlobe = () => {
                     {selectedCoords.lng.toFixed(6)}°
                   </span>
                 </div>
-                <div className="pt-2 border-t border-gray-600">
-                  <div className="text-xs text-gray-400 mb-2">Coordinate System: WGS84</div>
-                </div>
               </div>
-              <button
-                className="mt-4 w-full bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white py-3 px-4 rounded-lg transition-all duration-200 transform hover:scale-105 font-semibold"
-                onClick={() => {
-                  console.log('Getting prediction for:', selectedCoords);
-                  alert(`🌊 Analyzing location: ${selectedCoords.lat.toFixed(4)}°, ${selectedCoords.lng.toFixed(4)}°`);
-                }}
-              >
-                🔍 Analyze Location
-              </button>
             </div>
           )}
-
-          <div className="absolute bottom-6 left-6 bg-black/90 backdrop-blur-md border border-blue-400/40 rounded-lg p-4 max-w-xs shadow-2xl">
-            <div className="text-blue-400 font-bold text-sm mb-3 flex items-center">
-              <span className="mr-2">🎮</span> Controls
-            </div>
-            <div className="text-gray-300 text-xs space-y-2">
-              <div className="flex items-center">
-                <span className="w-16 text-blue-300">Click:</span> <span>Bounce & coordinates</span>
-              </div>
-              <div className="flex items-center">
-                <span className="w-16 text-blue-300">Drag:</span> <span>Rotate globe</span>
-              </div>
-              <div className="flex items-center">
-                <span className="w-16 text-blue-300">Scroll:</span> <span>Zoom in/out</span>
-              </div>
-              <div className="flex items-center">
-                <span className="w-16 text-blue-300">Bounce:</span> <span>Lasts 1.5 seconds</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="absolute bottom-6 right-6 bg-black/80 backdrop-blur-sm border border-gray-600/30 rounded-lg p-3 text-xs text-gray-400">
-            <div>📡 Imagery: NASA Blue Marble</div>
-            <div>🛰️ Real satellite data</div>
-            <div>🎯 Interactive bounce effects</div>
-          </div>
         </div>
       </div>
     </div>
