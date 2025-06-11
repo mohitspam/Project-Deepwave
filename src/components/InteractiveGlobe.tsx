@@ -1,7 +1,4 @@
-// Enhanced Interactive Globe: 
-// ✅ Fixed longitude sign convention
-// ✅ Upgraded to 8K textures
-// ✅ Cleaned UI (no country labels)
+// Cleaned Interactive Globe: Back to mid-resolution texture with fixed longitude
 
 import { useRef, useState, useCallback, useEffect, Suspense } from 'react';
 import { Canvas, useFrame, useLoader } from '@react-three/fiber';
@@ -15,15 +12,12 @@ const EarthSphere = ({ onCoordinateClick, onTexturesLoaded }) => {
   const [bounceEffects, setBounceEffects] = useState([]);
   const bounceIdCounter = useRef(0);
 
-  const earthTexture = useLoader(THREE.TextureLoader, 'https://planetpixelemporium.com/download/earth8k.jpg');
-  const bumpTexture = useLoader(THREE.TextureLoader, 'https://planetpixelemporium.com/download/earthbump8k.jpg');
-  const specularTexture = useLoader(THREE.TextureLoader, 'https://planetpixelemporium.com/download/earthspec8k.jpg');
+  // Restored to mid-resolution texture for performance
+  const earthTexture = useLoader(THREE.TextureLoader, 'https://cdn.jsdelivr.net/gh/mrdoob/three.js@dev/examples/textures/planets/earth_atmos_2048.jpg');
+  const bumpTexture = useLoader(THREE.TextureLoader, 'https://cdn.jsdelivr.net/gh/mrdoob/three.js@dev/examples/textures/planets/earth_normal_2048.jpg');
+  const specularTexture = useLoader(THREE.TextureLoader, 'https://cdn.jsdelivr.net/gh/mrdoob/three.js@dev/examples/textures/planets/earth_specular_2048.jpg');
 
   useEffect(() => {
-    earthTexture.anisotropy = 16;
-    bumpTexture.anisotropy = 16;
-    specularTexture.anisotropy = 16;
-
     const timer = setTimeout(() => onTexturesLoaded(), 100);
     return () => clearTimeout(timer);
   }, [earthTexture, bumpTexture, specularTexture, onTexturesLoaded]);
@@ -112,7 +106,7 @@ const EarthSphere = ({ onCoordinateClick, onTexturesLoaded }) => {
     const z = originalPoint.z;
 
     const lat = Math.asin(y / radius) * (180 / Math.PI);
-    let lng = Math.atan2(x, z) * (180 / Math.PI); // ✅ Correct longitude system
+    let lng = Math.atan2(x, z) * (180 / Math.PI); // Corrected longitude
     if (lng < -180) lng += 360;
     if (lng > 180) lng -= 360;
 
@@ -145,124 +139,3 @@ const EarthSphere = ({ onCoordinateClick, onTexturesLoaded }) => {
     </mesh>
   );
 };
-
-const LoadingEarth = () => {
-  const meshRef = useRef(null);
-
-  useFrame((state, delta) => {
-    if (meshRef.current) {
-      meshRef.current.rotation.y += delta * 0.08;
-    }
-  });
-
-  return (
-    <mesh ref={meshRef} position={[0, 0, 0]}>
-      <sphereGeometry args={[2, 64, 32]} />
-      <meshPhongMaterial color="#4a90e2" shininess={30} transparent opacity={0.8} />
-    </mesh>
-  );
-};
-
-const InteractiveGlobe = () => {
-  const [selectedCoords, setSelectedCoords] = useState(null);
-  const [isLoading, setIsLoading] = useState(true);
-
-  const handleCoordinateClick = useCallback((lat, lng) => {
-    setSelectedCoords({ lat, lng });
-    const notification = document.createElement('div');
-    notification.innerHTML = `📍 Coordinates: ${lat.toFixed(2)}°, ${lng.toFixed(2)}°`;
-    notification.style.cssText = `
-      position: fixed;
-      top: 20px;
-      left: 50%;
-      transform: translateX(-50%);
-      background: rgba(0, 0, 0, 0.8);
-      color: white;
-      padding: 12px 24px;
-      border-radius: 8px;
-      border: 1px solid #3b82f6;
-      z-index: 1000;
-      font-family: monospace;
-    `;
-    document.body.appendChild(notification);
-    setTimeout(() => notification.remove(), 3000);
-  }, []);
-
-  const handleTexturesLoaded = useCallback(() => {
-    setIsLoading(false);
-  }, []);
-
-  return (
-    <div className="min-h-screen bg-gradient-to-b from-indigo-900 via-purple-900 to-black p-4">
-      <div className="max-w-7xl mx-auto">
-        <div className="text-center mb-8">
-          <h1 className="text-5xl font-bold text-white mb-4 bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
-            NASA Earth Globe
-          </h1>
-          <p className="text-gray-300 text-lg">Real satellite imagery from NASA's Blue Marble dataset</p>
-          <p className="text-gray-400 text-sm mt-2">Click anywhere on Earth to get precise coordinates</p>
-        </div>
-
-        <div className="relative">
-          <div className="h-[700px] w-full rounded-xl overflow-hidden bg-black border border-blue-500/20 shadow-2xl">
-            <Canvas camera={{ position: [0, 0, 6], fov: 50 }}>
-              <ambientLight intensity={0.4} />
-              <directionalLight position={[5, 3, 5]} intensity={3.0} castShadow color="#ffffff" />
-              <directionalLight position={[-4, 2, -2]} intensity={1.5} color="#ddddff" />
-              <pointLight position={[-3, -3, -3]} intensity={0.5} color="#88ccff" />
-              <Stars radius={200} depth={60} count={10000} factor={4} saturation={0} fade speed={0.3} />
-              <Suspense fallback={<LoadingEarth />}>
-                <EarthSphere onCoordinateClick={handleCoordinateClick} onTexturesLoaded={handleTexturesLoaded} />
-              </Suspense>
-              <OrbitControls
-                enablePan={false}
-                enableZoom={true}
-                enableRotate={true}
-                minDistance={2.5}
-                maxDistance={15}
-                autoRotate={false}
-                dampingFactor={0.05}
-                enableDamping={true}
-                rotateSpeed={0.5}
-                zoomSpeed={0.8}
-              />
-            </Canvas>
-          </div>
-
-          {isLoading && (
-            <div className="absolute inset-0 flex items-center justify-center bg-black/50 backdrop-blur-sm rounded-xl">
-              <div className="text-center">
-                <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-400 mx-auto mb-4"></div>
-                <p className="text-white text-lg">Loading NASA Earth Textures...</p>
-              </div>
-            </div>
-          )}
-
-          {selectedCoords && (
-            <div className="absolute top-6 right-6 bg-black/90 backdrop-blur-md border border-blue-400/40 rounded-lg p-6 min-w-[280px] shadow-2xl">
-              <h3 className="text-blue-400 text-xl font-bold mb-4 flex items-center">
-                <span className="mr-2">🌍</span> Selected Location
-              </h3>
-              <div className="space-y-3">
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-300">Latitude:</span>
-                  <span className="font-mono text-green-400 bg-green-400/10 px-2 py-1 rounded">
-                    {selectedCoords.lat.toFixed(6)}°
-                  </span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-300">Longitude:</span>
-                  <span className="font-mono text-green-400 bg-green-400/10 px-2 py-1 rounded">
-                    {selectedCoords.lng.toFixed(6)}°
-                  </span>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-};
-
-export default InteractiveGlobe;
