@@ -326,12 +326,56 @@ const InteractiveGlobe = () => {
                 <div className="pt-2 border-t border-gray-600">
                   <div className="text-xs text-gray-400 mb-2">Coordinate System: WGS84</div>
                   <div className="text-xs text-green-300">
-                    {selectedCoords.lat > 10 && selectedCoords.lat < 30 && selectedCoords.lng > 70 && selectedCoords.lng < 90 ? "🇮🇳 India Region" :
-                     selectedCoords.lat > 30 && selectedCoords.lat < 50 && selectedCoords.lng < -70 && selectedCoords.lng > -130 ? "🇺🇸 USA Region" :
-                     selectedCoords.lat < -10 && selectedCoords.lng > 110 && selectedCoords.lng < 160 ? "🇦🇺 Australia Region" :
-                     selectedCoords.lat > 35 && selectedCoords.lat < 55 && selectedCoords.lng > -10 && selectedCoords.lng < 40 ? "🇪🇺 Europe Region" :
-                     selectedCoords.lat > -35 && selectedCoords.lat < 35 && selectedCoords.lng > -20 && selectedCoords.lng < 55 ? "🌍 Africa Region" :
-                     "🌎 Click on land masses for regional hints"}
+                    {(() => {
+                      const lat = selectedCoords.lat;
+                      const lng = selectedCoords.lng;
+                      
+                      // Countries with precise coordinate ranges
+                      if (lat >= 8 && lat <= 37 && lng >= 68 && lng <= 97) return "🇮🇳 India";
+                      if (lat >= 25 && lat <= 49 && lng >= -125 && lng <= -66) return "🇺🇸 United States";
+                      if (lat >= -44 && lat <= -10 && lng >= 113 && lng <= 154) return "🇦🇺 Australia";
+                      if (lat >= 41 && lat <= 51 && lng >= -5 && lng <= 9) return "🇫🇷 France";
+                      if (lat >= 35 && lat <= 47 && lng >= 6 && lng <= 19) return "🇮🇹 Italy";
+                      if (lat >= 47 && lat <= 55 && lng >= 6 && lng <= 15) return "🇩🇪 Germany";
+                      if (lat >= 50 && lat <= 61 && lng >= -8 && lng <= 2) return "🇬🇧 United Kingdom";
+                      if (lat >= 36 && lat <= 43 && lng >= -9 && lng <= 3) return "🇪🇸 Spain";
+                      if (lat >= 41 && lat <= 51 && lng >= -1 && lng <= 7) return "🇨🇭 Switzerland";
+                      if (lat >= 60 && lat <= 70 && lng >= 5 && lng <= 31) return "🇳🇴 Norway";
+                      if (lat >= 55 && lat <= 69 && lng >= 8 && lng <= 24) return "🇸🇪 Sweden";
+                      if (lat >= 59 && lat <= 70 && lng >= 20 && lng <= 32) return "🇫🇮 Finland";
+                      if (lat >= 41 && lat <= 84 && lng >= 19 && lng <= 169) return "🇷🇺 Russia";
+                      if (lat >= 18 && lat <= 54 && lng >= 73 && lng <= 135) return "🇨🇳 China";
+                      if (lat >= 31 && lat <= 46 && lng >= 129 && lng <= 146) return "🇯🇵 Japan";
+                      if (lat >= 33 && lat <= 43 && lng >= 124 && lng <= 132) return "🇰🇷 South Korea";
+                      if (lat >= 56 && lat <= 72 && lng >= -141 && lng <= -52) return "🇨🇦 Canada";
+                      if (lat >= -55 && lat <= 22 && lng >= -74 && lng <= -35) return "🇧🇷 Brazil";
+                      if (lat >= -57 && lat <= -22 && lng >= -74 && lng <= -53) return "🇦🇷 Argentina";
+                      if (lat >= -18 && lat <= 37 && lng >= -18 && lng <= 52) return "🌍 Africa";
+                      if (lat >= -35 && lat <= -22 && lng >= 16 && lng <= 33) return "🇿🇦 South Africa";
+                      if (lat >= 22 && lat <= 32 && lng >= 34 && lng <= 37) return "🇪🇬 Egypt";
+                      if (lat >= -2 && lat <= 15 && lng >= 7 && lng <= 15) return "🇳🇬 Nigeria";
+                      if (lat >= -5 && lat <= 5 && lng >= 11 && lng <= 19) return "🇨🇲 Cameroon";
+                      if (lat >= 14 && lat <= 28 && lng >= -18 && lng <= -4) return "🇲🇦 Morocco";
+                      if (lat >= -26 && lat <= -17 && lng >= 20 && lng <= 30) return "🇧🇼 Botswana";
+                      if (lat >= 14 && lat <= 37 && lng >= 25 && lng <= 39) return "🇸🇩 Sudan";
+                      if (lat >= -12 && lat <= 23 && lng >= 12 && lng <= 24) return "🇹🇩 Chad";
+                      if (lat >= 36 && lat <= 42 && lng >= 26 && lng <= 45) return "🇹🇷 Turkey";
+                      if (lat >= 25 && lat <= 40 && lng >= 44 && lng <= 64) return "🇮🇷 Iran";
+                      if (lat >= 12 && lat <= 32 && lng >= 35 && lng <= 56) return "🇸🇦 Saudi Arabia";
+                      if (lat >= -11 && lat <= 6 && lng >= 95 && lng <= 141) return "🇮🇩 Indonesia";
+                      if (lat >= -10 && lat <= 20 && lng >= 92 && lng <= 145) return "🇵🇭 Philippines";
+                      if (lat >= 1 && lat <= 7 && lng >= 99 && lng <= 120) return "🇲🇾 Malaysia";
+                      if (lat >= 5 && lat <= 29 && lng >= 92 && lng <= 102) return "🇹🇭 Thailand";
+                      if (lat >= 8 && lat <= 24 && lng >= 102 && lng <= 110) return "🇻🇳 Vietnam";
+                      if (lat >= 10 && lat <= 24 && lng >= 106 && lng <= 109) return "🇰🇭 Cambodia";
+                      if (lat >= 14 && lat <= 29 && lng >= 92 && lng <= 101) return "🇲🇲 Myanmar";
+                      if (lat >= -35 && lat <= 12 && lng >= -82 && lng <= -32) return "🌎 South America";
+                      if (lat >= 7 && lat <= 72 && lng >= -170 && lng <= -52) return "🌎 North America";
+                      if (lat >= 35 && lat <= 72 && lng >= -25 && lng <= 45) return "🇪🇺 Europe";
+                      if (lat >= -12 && lat <= 38 && lng >= 95 && lng <= 180) return "🌏 Asia-Pacific";
+                      
+                      return "🌎 Click on land masses for country detection";
+                    })()}
                   </div>
                 </div>
               </div>
