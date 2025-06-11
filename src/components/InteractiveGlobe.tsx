@@ -142,7 +142,9 @@ const EarthSphere = ({ onCoordinateClick, onTexturesLoaded }: GlobeProps) => {
     
     // Now calculate coordinates from the rotation-corrected position
     const lat = Math.asin(y / radius) * (180 / Math.PI);
-    let lng = Math.atan2(x, z) * (180 / Math.PI);
+    let lng = Math.atan2(z, x) * (180 / Math.PI);
+    if (lng < 0) lng += 360;
+
     
     // Normalize longitude to [-180, 180] range
     if (lng < -180) lng += 360;
