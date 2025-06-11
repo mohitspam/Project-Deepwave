@@ -10,7 +10,7 @@ interface GlobeProps {
 
 interface BounceEffect {
   id: number;
-  center: THREE.Vector3; // In local sphere coordinates (before rotation)
+  center: THREE.Vector3;
   startTime: number;
   duration: number;
 }
@@ -35,10 +35,13 @@ const EarthSphere = ({ onCoordinateClick, onTexturesLoaded }: GlobeProps) => {
     'https://cdn.jsdelivr.net/gh/mrdoob/three.js@dev/examples/textures/planets/earth_specular_2048.jpg'
   );
 
+  // Call onTexturesLoaded immediately when textures are available
   useEffect(() => {
-    if (earthTexture && bumpTexture && specularTexture) {
+    // Add a small delay to ensure everything is ready
+    const timer = setTimeout(() => {
       onTexturesLoaded();
-    }
+    }, 100);
+    return () => clearTimeout(timer);
   }, [earthTexture, bumpTexture, specularTexture, onTexturesLoaded]);
 
   // Store original vertex positions
@@ -85,15 +88,13 @@ const EarthSphere = ({ onCoordinateClick, onTexturesLoaded }: GlobeProps) => {
               originalPositions.current[i + 2]
             );
             
-            // vertex is already in local coordinates (unrotated sphere)
             const distance = vertex.distanceTo(effect.center);
-            const maxDistance = 0.15; // Smaller influence radius for more constrained bounce
+            const maxDistance = 0.15;
             
             if (distance < maxDistance) {
               const influence = Math.cos((distance / maxDistance) * Math.PI * 0.5);
               const displacement = bounceHeight * influence;
               
-              // Move vertex outward along its normal
               vertex.normalize().multiplyScalar(2 + displacement);
               
               positionArray[i] = vertex.x;
@@ -104,7 +105,6 @@ const EarthSphere = ({ onCoordinateClick, onTexturesLoaded }: GlobeProps) => {
         }
       });
 
-      // Update bounce effects list
       if (activeEffects.length !== bounceEffects.length) {
         setBounceEffects(activeEffects);
       }
@@ -123,29 +123,36 @@ const EarthSphere = ({ onCoordinateClick, onTexturesLoaded }: GlobeProps) => {
 
     const point = event.point;
     const radius = 2;
-    const lat = Math.asin(point.y / radius) * (180 / Math.PI);
-    const lng = Math.atan2(point.x, point.z) * (180 / Math.PI);
+    
+    // Normalize the point to ensure it's on the sphere surface
+    const normalizedPoint = point.clone().normalize().multiplyScalar(radius);
+    const x = normalizedPoint.x;
+    const y = normalizedPoint.y;
+    const z = normalizedPoint.z;
+    
+    // CORRECT coordinate conversion for proper lat/lng mapping
+    const lat = Math.asin(y / radius) * (180 / Math.PI);
+    let lng = Math.atan2(-x, -z) * (180 / Math.PI);
+    
+    // Normalize longitude to [-180, 180] range
+    if (lng < -180) lng += 360;
+    if (lng > 180) lng -= 360;
 
-    // Convert world coordinates to local sphere coordinates (unrotated)
-    // We need to inverse the current rotation to get the "static" position on the sphere
+    // Convert world coordinates to local sphere coordinates for bounce effect
     const currentRotation = meshRef.current.rotation.y;
     const localPoint = new THREE.Vector3(point.x, point.y, point.z);
-    
-    // Rotate the point backwards to get its position on the "unrotated" sphere
     const rotationMatrix = new THREE.Matrix4().makeRotationY(-currentRotation);
     localPoint.applyMatrix4(rotationMatrix);
-    
     const bounceCenter = localPoint.normalize().multiplyScalar(2);
     
     const newBounce: BounceEffect = {
       id: bounceIdCounter.current++,
-      center: bounceCenter, // Now in local coordinates
+      center: bounceCenter,
       startTime: Date.now(),
-      duration: 1500 // 1.5 seconds
+      duration: 1500
     };
 
     setBounceEffects(prev => [...prev, newBounce]);
-
     onCoordinateClick(lat, lng);
   }, [onCoordinateClick]);
 
@@ -207,6 +214,10 @@ const InteractiveGlobe = () => {
     setTimeout(() => notification.remove(), 3000);
   }, []);
 
+  const handleTexturesLoaded = useCallback(() => {
+    setIsLoading(false);
+  }, []);
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-indigo-900 via-purple-900 to-black p-4">
       <div className="max-w-7xl mx-auto">
@@ -216,6 +227,11 @@ const InteractiveGlobe = () => {
           </h1>
           <p className="text-gray-300 text-lg">Real satellite imagery from NASA's Blue Marble dataset</p>
           <p className="text-gray-400 text-sm mt-2">Click anywhere on Earth to get precise coordinates</p>
+          <div className="mt-4 p-4 bg-blue-900/30 rounded-lg border border-blue-400/20 max-w-2xl mx-auto">
+            <p className="text-blue-200 text-sm">
+              <strong>Test Coordinates:</strong> India should show ~21°N, 78°E | USA ~40°N, -100°W | Australia ~-27°S, 133°E
+            </p>
+          </div>
         </div>
 
         <div className="relative">
@@ -223,7 +239,6 @@ const InteractiveGlobe = () => {
             <Canvas camera={{ position: [0, 0, 6], fov: 50 }}>
               <ambientLight intensity={0.4} />
 
-              {/* Primary sunlight */}
               <directionalLight
                 position={[5, 3, 5]}
                 intensity={3.0}
@@ -231,7 +246,6 @@ const InteractiveGlobe = () => {
                 color="#ffffff"
               />
 
-              {/* Rim light for extra glow */}
               <directionalLight
                 position={[-4, 2, -2]}
                 intensity={1.5}
@@ -253,7 +267,7 @@ const InteractiveGlobe = () => {
               <Suspense fallback={<LoadingEarth />}>
                 <EarthSphere
                   onCoordinateClick={handleCoordinateClick}
-                  onTexturesLoaded={() => setIsLoading(false)}
+                  onTexturesLoaded={handleTexturesLoaded}
                 />
               </Suspense>
 
@@ -302,6 +316,14 @@ const InteractiveGlobe = () => {
                 </div>
                 <div className="pt-2 border-t border-gray-600">
                   <div className="text-xs text-gray-400 mb-2">Coordinate System: WGS84</div>
+                  <div className="text-xs text-green-300">
+                    {selectedCoords.lat > 10 && selectedCoords.lat < 30 && selectedCoords.lng > 70 && selectedCoords.lng < 90 ? "🇮🇳 India Region" :
+                     selectedCoords.lat > 30 && selectedCoords.lat < 50 && selectedCoords.lng < -70 && selectedCoords.lng > -130 ? "🇺🇸 USA Region" :
+                     selectedCoords.lat < -10 && selectedCoords.lng > 110 && selectedCoords.lng < 160 ? "🇦🇺 Australia Region" :
+                     selectedCoords.lat > 35 && selectedCoords.lat < 55 && selectedCoords.lng > -10 && selectedCoords.lng < 40 ? "🇪🇺 Europe Region" :
+                     selectedCoords.lat > -35 && selectedCoords.lat < 35 && selectedCoords.lng > -20 && selectedCoords.lng < 55 ? "🌍 Africa Region" :
+                     "🌎 Click on land masses for regional hints"}
+                  </div>
                 </div>
               </div>
               <button
