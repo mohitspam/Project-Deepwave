@@ -1,4 +1,8 @@
-// Clean version of your globe without country labeling
+// Enhanced Interactive Globe: 
+// ✅ Fixed longitude sign convention
+// ✅ Upgraded to 8K textures
+// ✅ Cleaned UI (no country labels)
+
 import { useRef, useState, useCallback, useEffect, Suspense } from 'react';
 import { Canvas, useFrame, useLoader } from '@react-three/fiber';
 import { OrbitControls, Stars } from '@react-three/drei';
@@ -11,11 +15,15 @@ const EarthSphere = ({ onCoordinateClick, onTexturesLoaded }) => {
   const [bounceEffects, setBounceEffects] = useState([]);
   const bounceIdCounter = useRef(0);
 
-  const earthTexture = useLoader(THREE.TextureLoader, 'https://cdn.jsdelivr.net/gh/mrdoob/three.js@dev/examples/textures/planets/earth_atmos_2048.jpg');
-  const bumpTexture = useLoader(THREE.TextureLoader, 'https://cdn.jsdelivr.net/gh/mrdoob/three.js@dev/examples/textures/planets/earth_normal_2048.jpg');
-  const specularTexture = useLoader(THREE.TextureLoader, 'https://cdn.jsdelivr.net/gh/mrdoob/three.js@dev/examples/textures/planets/earth_specular_2048.jpg');
+  const earthTexture = useLoader(THREE.TextureLoader, 'https://planetpixelemporium.com/download/earth8k.jpg');
+  const bumpTexture = useLoader(THREE.TextureLoader, 'https://planetpixelemporium.com/download/earthbump8k.jpg');
+  const specularTexture = useLoader(THREE.TextureLoader, 'https://planetpixelemporium.com/download/earthspec8k.jpg');
 
   useEffect(() => {
+    earthTexture.anisotropy = 16;
+    bumpTexture.anisotropy = 16;
+    specularTexture.anisotropy = 16;
+
     const timer = setTimeout(() => onTexturesLoaded(), 100);
     return () => clearTimeout(timer);
   }, [earthTexture, bumpTexture, specularTexture, onTexturesLoaded]);
@@ -104,7 +112,7 @@ const EarthSphere = ({ onCoordinateClick, onTexturesLoaded }) => {
     const z = originalPoint.z;
 
     const lat = Math.asin(y / radius) * (180 / Math.PI);
-    let lng = Math.atan2(-x, -z) * (180 / Math.PI);
+    let lng = Math.atan2(x, z) * (180 / Math.PI); // ✅ Correct longitude system
     if (lng < -180) lng += 360;
     if (lng > 180) lng -= 360;
 
