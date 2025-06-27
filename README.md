@@ -1,26 +1,80 @@
+# 🌊 Project DeepWave — hack-enshmirtz HACKATHON PROJECT 🚀
 
-# 🌊 Project DeepWave - HACKATHON PROJECT
-
-- Featuring our Interactive NASA Earth Globe with precise coordinate mapping and real-time bounce effects.
-
-Wavefront is a React + Three.js project that features an **interactive 3D globe** using real NASA Blue Marble textures. Users can **click anywhere on Earth to get real-world geographic coordinates** with beautiful animated feedback.
+> **Predicting Tsunamis🌊Made Easy — with an Interactive NASA Earth Globe**
 
 ---
-### ⭐️ special Notes for Hackathon Reviewers - our special componenet for Feature Friday - is our #Interactive Globe 
-- Gives Precise co-ordinates of the place where you click using your cursor
-- 
 
-* This project places **special emphasis** on *interactive mapping* of user clicks to **real-world coordinates**, and demonstrating **real-time 3D feedback** with NASA textures.
-* Please enjoy the "bounce" at the place you touch it :P
-* The bounce animation is fully dynamic, computed in real-time on the mesh geometry without relying on any pre-baked animations.
-* The code is well-commented and easy to extend for features like data overlays, weather layers, or space views.
+## 🌐 What is DeepWave?
 
+**DeepWave** is a web app that aims to help researchers, disaster-response teams, and curious users **predict tsunami risk at any coastal location**.
+It combines:
+
+✅ A *machine learning model* that predicts tsunami likelihood from coordinates  
+✅ An *interactive 3D globe* so users can **visually choose the precise location** instead of manually searching for latitude and longitude  
+
+Our mission:
+
+> **"Making critical geolocation data entry accessible, for when needed, to save the world, one predict at at ime :)"**
+# *Note to our hackathon judges* -
+✅ Last Feature Friday, we submitted our ML model (91% Accuracy)...This friday we have worked on our Frontend of our website. The backend and frontend integration of the ML model is in progress and planned for the next sprint!
+✅ Please do scroll the page for our **special note for the judges**, and do go through our entire read me, it should give an idea of how we hav created this globe :))
+
+## 📸 Experience Our Website
+
+> 👉 **Click the image below to watch our demo video!**  
+> *(Or use the live link just below it to test it yourself.)*
+
+[![Watch the demo](https://github.com/user-attachments/assets/9e1c9ab7-6898-435c-9586-94dcd2d22803)](https://youtu.be/ak2QTYkNcWU)
+
+---
+
+## 🔗 Live Link
+https://project-deepwave.vercel.app/
+
+
+---
+
+## 🌟 About the Site
+
+DeepWave is built to **predict tsunami risk** based on precise geographic coordinates.
+Instead of making users look up latitude and longitude manually (which is error-prone and tedious), our **Interactive Globe** lets them:
+
+✅ Spin, zoom, and explore the Earth in 3D  
+✅ Click exactly where they want to test  
+✅ Instantly see the exact coordinates
+
+These coordinates will be **passed to our tsunami prediction ML model**, which returns a risk score.
+
+---
+
+# 🌊 Special Notes for Hackathon Reviewers
+
+⭐️ Our standout feature for *Feature Friday* is our **InteractiveGlobe** component:
+
+✅ Lets users **click** anywhere on Earth to get **precise WGS84 latitude/longitude**  
+✅ Uses **NASA's 4K real Earth imagery** for accurate visual reference  
+✅ Adds a **gentle bounce animation** when clicking so users know exactly where they clicked  
+✅ **Coordinates are instantly shown** and *can be directly fed into our tsunami prediction model* (integration planned)
+
+> This approach removes the need for users to search for coordinates on Google Maps or copy-paste them manually. Instead, it **makes location selection part of an enjoyable, immersive experience.**
+
+---
+
+## ⚡️ How it Connects to Tsunami Prediction
+
+- The *core idea* of our site is to **predict tsunami probability** at any coastal location.  
+- Our **ML model** (developed separately) takes **latitude and longitude** as inputs to generate predictions.  
+- The globe ensures **users don't have to manually type or look up coordinates**.  
+- It’s not just functional—it’s *engaging*, encouraging exploration and understanding of coastal geography.
+
+✅ *Note*: Frontend integration of the ML model is in progress and planned for the next sprint!
+
+---
 
 ## 🚀 Quick Start
 
 **Use your preferred IDE and follow these steps:**
 
-```bash
 # 1️⃣ Clone this repo
 git clone <YOUR_GIT_URL>
 
@@ -32,148 +86,82 @@ npm install
 
 # 4️⃣ Start the development server
 npm run dev
-```
-
----
-
-## 🌍 Core Features
-
+🌍 Core Features
 ✅ Interactive 3D Earth using NASA imagery
-✅ Click to get real latitude and longitude (WGS84 system)
+✅ Click to get precise latitude and longitude (WGS84 system)
 ✅ Smooth bounce animation centered on click location
-✅ Real-time coordinate display with stylish UI
-✅ Fully responsive, mobile-friendly design
+✅ Real-time coordinate display with intuitive UI
 ✅ Built with modern tools (Vite, React, TypeScript, Tailwind, shadcn-ui)
+✅ Mobile-friendly and responsive
 
----
+🌌 Why This Globe is Special
+This isn’t just a static 3D model. The heart of our app is matching a user's click on Earth to real-world coordinates, while:
 
+✅ Handling globe rotation and orientation with rotation matrices
+✅ Mapping 3D sphere points to latitude/longitude correctly
+✅ Using high-resolution NASA Blue Marble textures for realism
+✅ Creating a custom bounce animation with sinusoidal vertex displacement — no pre-baked animation!
 
+✨ Highlights of the Implementation
+🎯 Click-to-Coordinate Mapping
+Normalizes 3D click points to sphere surface
 
-## 🌌 Why This Globe is Special
+Applies inverse rotation to get true geographic location
 
-This isn't just a static 3D model. The heart of this project is **matching a user's 3D click to real geographic coordinates**, while ensuring:
+Converts to:
 
-* ✅ Correct **longitude/latitude mapping** despite globe rotation
-* ✅ Accounting for the globe's **current orientation** with inverse rotation math
-* ✅ Applying real NASA Blue Marble textures for **immersive realism**
-* ✅ Creating a **bounce animation** that deforms the sphere mesh dynamically at the exact click location
+ini
+Copy
+Edit
+lat = arcsin(y / radius)
+lng = atan2(z, x)
+Normalizes to standard WGS84 longitude range
 
-**Challenges overcome:**
+🌐 NASA Satellite Textures
+Diffuse Map: Real Earth imagery
 
-* Mapping 3D sphere click points to geographic coordinates required handling rotation matrices to reverse the globe's rotation.
-* Latitude/longitude math uses spherical geometry, arcsin, atan2 conversions, and normalization to \[-180, 180] ranges.
-* Textures loaded asynchronously with smooth fallback states and loading spinners.
-* Bounce effect: sinusoidal displacement of nearby vertices based on distance to click, with custom easing for realistic deformation.
+Normal Map: Terrain topography
 
----
+Specular Map: Realistic ocean reflections
 
-## ✨ Highlights of the Implementation
+🏀 Bounce Animation
+Real-time vertex displacement near click
 
-### 🎯 Click-to-Coordinate Mapping
+Smooth sinusoidal easing
 
-When a user clicks the globe:
+Lasts ~1.5 seconds, resets cleanly
 
-* The 3D click point is **normalized** to the sphere surface.
-* A **rotation matrix** is applied to counteract the current rotation of the globe.
-* The corrected point is converted to **latitude and longitude** with:
+Works regardless of globe rotation
 
-  ```
-  lat = arcsin(y / radius)
-  lng = atan2(z, x)
-  ```
-* Values are normalized to standard WGS84 ranges.
+🛰️ Realistic Lighting
+Ambient, directional, and point lights
 
-### 🌐 NASA Satellite Textures
+Star field backdrop for immersion
 
-High-resolution, realistic textures are loaded:
+Realistic shading and reflections
 
-* **Diffuse Map:** Real Earth imagery
-* **Normal Map:** Topography bumps
-* **Specular Map:** Ocean reflections
+💡 Example User Flow
+1️⃣ User explores the globe by dragging and zooming
+2️⃣ Clicks on the target coastal region
+3️⃣ Instantly sees latitude and longitude
+4️⃣ (In the next version, those coordinates will be automatically passed to the ML model to get a tsunami risk score!)
 
-This ensures **photorealism** without sacrificing performance.
+🗺️ Example Coordinates
+Region	Approximate Lat	Approximate Lng
+India	~21° N	~78° E
+USA	~40° N	~-100° W
+Australia	~-27° S	~133° E
 
-### 🏀 Bounce Animation
+⚙️ Built With
+⚡ Vite – Fast dev server
 
-* Custom shader-free **vertex displacement**.
-* Vertices near the click "bounce" outward with sinusoidal easing.
-* The bounce lasts 1.5 seconds, resets cleanly, and works at any rotation.
+⚛️ React – UI framework
 
-### 🛰️ Realistic Lighting
+🟦 TypeScript – Type safety
 
-* Ambient light for subtle illumination.
-* Directional and point lights to mimic sun and space reflections.
-* Star field backdrop for extra immersion.
+🎨 Tailwind CSS – Utility-first styling
 
----
+🪄 shadcn/ui – Beautiful components
 
-## 📸 Screenshots
+🌌 Three.js – 3D rendering
 
-> *(Add images here if you have them!)*
-
-* Interactive globe with NASA textures.
-* Bounce animation at clicked location.
-* Coordinate readout panel.
-
----
-
-## ⚙️ Built With
-
-* ⚡ [Vite](https://vitejs.dev/) – Blazing fast dev server
-* ⚛️ [React](https://react.dev/) – UI framework
-* 🟦 [TypeScript](https://www.typescriptlang.org/) – Type safety
-* 🎨 [Tailwind CSS](https://tailwindcss.com/) – Utility-first styling
-* 🪄 [shadcn/ui](https://ui.shadcn.com/) – Beautiful components
-* 🌌 [Three.js](https://threejs.org/) – 3D rendering
-* 🛸 @react-three/fiber – React integration for Three.js
-
----
-
-## 💡 How to Use
-
-1️⃣ **Run the app** (see Quick Start).
-2️⃣ **Rotate / Zoom:** Drag and scroll to explore.
-3️⃣ **Click anywhere:** See the latitude and longitude.
-4️⃣ **Watch the bounce:** The globe deforms at your click location with a beautiful animation.
-
----
-
-## 🗺️ Example Coordinates
-
-| Region    | Approximate Lat | Approximate Lng |
-| --------- | --------------- | --------------- |
-| India     | \~21° N         | \~78° E         |
-| USA       | \~40° N         | \~-100° W       |
-| Australia | \~-27° S        | \~133° E        |
-
----
-
-## 🤝 Contributing
-
-Feel free to fork, clone, and submit pull requests!
-
----
-
-## 📜 License
-
-MIT License
-
----
-
-## 👨‍💻 Author
-
-[Your Name](https://github.com/yourusername)
-
----
-
-
----
-
-## 🔗 Links
-
-* [Live Demo (if deployed)](https://your-deployed-app.com)
-* [GitHub Repository](https://github.com/yourusername/wavefront)
-
----
-
-**Enjoy exploring Earth! 🌍✨**
